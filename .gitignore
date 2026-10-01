@@ -1,0 +1,10 @@
+.DS_Store
+# dataset and model weights must not be committed (see Day2/README.md)
+*.zip
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+Day2/**/data/
+Day2/**/images/
+Day2/**/checkpoints/
