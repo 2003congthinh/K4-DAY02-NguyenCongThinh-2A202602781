@@ -78,11 +78,11 @@ Số thí nghiệm tối thiểu (chi tiết ở GUIDE):
 
 ## 5. Cách nộp bài
 
-1. `git pull` repo này để lấy thư mục `Day2/`.
+1. `git clone` (hoặc `git pull`) repo này để lấy bài lab.
 2. Tạo thư mục bài làm của bạn, đặt đúng cấu trúc sau:
 
 ```
-Day2/submissions/<mssv>_<ho_ten_khong_dau>/
+submissions/<mssv>_<ho_ten_khong_dau>/
 ├── README.md          # link Colab/Kaggle, cách chạy lại
 ├── results.xlsx
 ├── report.md          # hoặc report.pdf
