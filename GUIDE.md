@@ -23,7 +23,7 @@ Bài lab chấm **độ chặt chẽ của thí nghiệm** ngang với kết qu�
 
 **N1. Một thay đổi mỗi lần.** Khi so sánh hai cấu hình, chỉ khác nhau đúng một yếu tố, mọi thứ còn lại giữ nguyên (cùng backbone, cùng số epoch, cùng seed khởi đầu, cùng split). Nếu đổi hai thứ cùng lúc, bạn không kết luận được yếu tố nào có tác dụng.
 
-**N2. Chia dữ liệu cố định.** Dùng `train_subset0.csv`, `val_subset0.csv`, `test_subset0.csv`.
+**N2. Chia dữ liệu cố định.** Dùng `train_subset0.csv`, `val_subset0.csv`, `test_subset0.csv`. Quy tắc đầy đủ (S1–S6) và các kiểm tra bắt buộc nằm ở [`README.md` mục 2.1](README.md#21-quy-tắc-chia-train--val--test-bắt-buộc); đọc kỹ trước khi làm.
 
 | Tập | Dùng để |
 |---|---|
@@ -38,6 +38,7 @@ Nếu bạn nhìn điểm test rồi quay lại chỉnh cấu hình, con số te
 - **Chỉ số chính: macro-F1** trên val. Dataset mất cân bằng nên accuracy bị lớp `Negative` kéo cao và che lỗi ở các lớp hiếm.
 - Chỉ số phụ: top-1 accuracy, balanced accuracy, F1 theo từng lớp, ECE (ở Bước 3).
 - Luôn ghi cả tên chỉ số lẫn tập đo (val hay test).
+- Định nghĩa chính xác từng chỉ số (macro-F1 trên 9 lớp, ECE 15 bin, mean ± std với `ddof=1`...) và quy trình đánh giá nằm ở [`README.md` mục 2.2](README.md#22-cách-đánh-giá-bắt-buộc). Mọi con số của bạn phải theo định nghĩa đó.
 
 **N4. Seed và nhiễu.** Slide (trang 59) cho biết ResNet-50 lệch chuẩn khoảng 0,10 điểm qua 100 seed, nên chênh lệch dưới ~0,3 điểm là nhiễu. Trên tập nhỏ như DeepWeeds, độ lệch có thể lớn hơn, hãy tự đo. Quy tắc:
 
@@ -57,7 +58,7 @@ Tải `images.zip` từ Zenodo, kiểm tra MD5, giải nén; tải các file CSV
 
 ### 1.2 EDA (bắt buộc, đưa vào báo cáo)
 
-- Đếm số ảnh theo lớp trong train, val, test của fold 0. Vẽ biểu đồ cột. Tỉ lệ lớp lớn nhất so với lớp nhỏ nhất là bao nhiêu?
+- Đếm số ảnh theo lớp trong train, val, test của fold 0 và chạy các kiểm tra ở [`README.md` mục 2.1](README.md#21-quy-tắc-chia-train--val--test-bắt-buộc) (giao rỗng, hợp đủ 17.509 ảnh, file tồn tại). Vẽ biểu đồ cột. Tỉ lệ lớp lớn nhất so với lớp nhỏ nhất là bao nhiêu? Đối chiếu với Table 1 của bài báo (`Negative` 9.106; các loài 1.009–1.125 ảnh).
 - Xem trực quan ít nhất 3 ảnh mỗi lớp. Lớp nào dễ nhầm với nhau bằng mắt thường? `Negative` trông như thế nào?
 - Kiểm tra không trùng ảnh giữa train, val, test (theo tên file).
 - Nhìn thống kê ảnh (kích thước, kênh) để chọn chuẩn hoá đầu vào.
@@ -210,7 +211,7 @@ Với mỗi phương pháp ghi: macro-F1 val, top-1 val, ECE (nếu đo), độ 
 
 1. **Chốt cấu hình** dựa hoàn toàn trên **val**: backbone, công thức huấn luyện (kết hợp tốt nhất từ Bước 2), phương pháp suy luận (Bước 3).
 2. Huấn luyện lại cấu hình đó với **≥ 3 seed khác nhau** (mã `F01`, `F02`, `F03`...). Báo cáo macro-F1 và top-1 val ở dạng mean ± std.
-3. Chạy **test đúng một lần** cho các cấu hình cuối cùng (và đối chứng mốc `T00`/`I00`). Báo cáo mean ± std của macro-F1, top-1, F1 từng lớp, ECE.
+3. Chạy **test đúng một lần cho mỗi seed** trên toàn bộ tập test, cho các cấu hình cuối cùng **và** mốc `T00`/`I00` (cùng số seed, để tính mức cải thiện). Báo cáo mean ± std của macro-F1, top-1, F1 từng lớp (đặc biệt Chinee apple và Snake weed), ECE. **Lưu file dự đoán** `predictions/<exp_id>_seed<k>_test.csv` theo định dạng ở [`README.md` mục 2.2](README.md#22-cách-đánh-giá-bắt-buộc); giảng viên sẽ tính lại chỉ số từ các file này. Đối chiếu kết quả với số tham khảo ở [`README.md` mục 2.3](README.md#23-số-tham-khảo-từ-bài-báo-gốc), nhớ rằng điều kiện huấn luyện của bài báo (100 epoch, augmentation mạnh) khác bài lab.
 4. So sánh với mốc: **cấu hình tốt nhất cải thiện bao nhiêu so với công thức nền + 1-view?** Chênh lệch có lớn hơn std không?
 5. Vẽ **ma trận nhầm lẫn** trên test, nêu lớp nào còn nhầm nhiều nhất và đưa ra giả thuyết nguyên nhân (xem vài ảnh bị dự đoán sai).
 6. Nếu giảng viên yêu cầu thêm tiêu chí triển khai (ví dụ độ trễ ≤ X ms), hãy nêu **hai** cấu hình: tốt nhất về độ chính xác (ngoại tuyến) và tốt nhất khi có ràng buộc thời gian thực.

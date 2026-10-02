@@ -30,11 +30,21 @@ Sau bài lab, bạn có thể:
 | Bài toán | Phân loại ảnh cỏ dại ngoài đồng (robot nông nghiệp, Queensland, Úc) |
 | Số ảnh | 17.509 ảnh RGB 256×256 |
 | Số lớp | 9: 8 loài cỏ dại + `Negative` (thực vật không phải loài mục tiêu) |
-| Đặc điểm | **Mất cân bằng lớp** (`Negative` chiếm khoảng một nửa số ảnh, mỗi loài còn lại khoảng 1.000 ảnh; bạn tự kiểm tra con số chính xác ở bước EDA) |
+| Đặc điểm | **Mất cân bằng lớp**: `Negative` có 9.106 ảnh (khoảng 52%), mỗi loài cỏ có 1.009–1.125 ảnh (xem bảng dưới). Số liệu theo Table 1 của bài báo; bạn phải tự đếm lại ở bước EDA và đối chiếu |
 | Dung lượng | Khoảng 490 MB |
 | Giấy phép | CC BY 4.0 |
 | Bài báo | Olsen et al., *DeepWeeds: A Multiclass Weed Species Image Dataset for Deep Learning*, Scientific Reports 9, 2058 (2019), [doi:10.1038/s41598-018-38343-3](https://doi.org/10.1038/s41598-018-38343-3) |
-| Baseline tham khảo | Bài báo báo cáo ResNet-50 đạt khoảng 95,7% accuracy trung bình |
+| Baseline tham khảo | Bài báo báo cáo ResNet-50 đạt 95,7% và Inception-v3 đạt 95,1% (chi tiết và điều kiện huấn luyện ở mục 2.3) |
+
+Số ảnh theo lớp (Table 1 của bài báo, tổng 17.509):
+
+| Lớp | Số ảnh | Lớp | Số ảnh |
+|---|---|---|---|
+| Chinee apple | 1.125 | Rubber vine | 1.009 |
+| Lantana | 1.064 | Siam weed | 1.074 |
+| Parkinsonia | 1.031 | Snake weed | 1.016 |
+| Parthenium | 1.022 | **Negative** | **9.106** |
+| Prickly acacia | 1.062 | | |
 
 **Nơi tải:**
 
@@ -44,7 +54,78 @@ Sau bài lab, bạn có thể:
 - Nhãn và các fold chia sẵn: [github.com/AlexOlsen/DeepWeeds](https://github.com/AlexOlsen/DeepWeeds), thư mục `labels/` gồm `labels.csv`, `train_subset{0-4}.csv`, `val_subset{0-4}.csv`, `test_subset{0-4}.csv` (cột `Filename, Label, Species`; chia 60/20/20).
 - Ngoài ra có trong [TensorFlow Datasets](https://www.tensorflow.org/datasets/catalog/deep_weeds), nhưng nên dùng file CSV ở trên để mọi người dùng **cùng một cách chia**.
 
-**Quy ước bắt buộc về dữ liệu:** dùng **fold 0** (`train_subset0.csv`, `val_subset0.csv`, `test_subset0.csv`) cho mọi thí nghiệm chính. Chọn mô hình và siêu tham số chỉ trên **val**. **Test chỉ được dùng đúng một lần ở bước cuối** (xem GUIDE).
+### 2.1 Quy tắc chia train / val / test (BẮT BUỘC)
+
+Dataset được tác giả chia sẵn thành 5 fold, mỗi fold là bộ ba file CSV 60% train / 20% val / 20% test. Chia ngẫu nhiên có phân tầng theo lớp (riêng lớp `Negative` không phân tầng), không chia theo địa điểm. **Mọi sinh viên dùng cùng một cách chia để kết quả so sánh được.**
+
+| # | Quy tắc |
+|---|---|
+| S1 | Dùng **fold 0**: `train_subset0.csv`, `val_subset0.csv`, `test_subset0.csv`. Tải nguyên bản từ GitHub của tác giả, **không sửa, không lọc, không chia lại**. |
+| S2 | **Train** chỉ để cập nhật trọng số. **Val** dùng để chọn backbone, siêu tham số, phương pháp suy luận, checkpoint (early stopping) và khớp nhiệt độ T. **Test** chỉ để báo cáo kết quả cuối (xem 2.2). |
+| S3 | **Không gộp val vào train**, kể cả ở lần huấn luyện cuối cùng. Không huấn luyện trên test. |
+| S4 | Không dùng bất kỳ thông tin nào từ test để quyết định gì: siêu tham số, ngưỡng, nhiệt độ T, thống kê chuẩn hoá, chọn model, chọn phương pháp suy luận. |
+| S5 | Seed chỉ thay đổi khởi tạo head, thứ tự batch và augmentation ngẫu nhiên. **Seed không được thay đổi cách chia.** |
+| S6 | Fold 1–4 chỉ dùng cho điểm thưởng, và khi dùng thì dùng đủ bộ ba file của cùng một fold. |
+
+**Kiểm tra bắt buộc trước khi train** (in kết quả ra notebook và ghi vào báo cáo):
+
+1. Số ảnh mỗi tập và số ảnh mỗi lớp trong từng tập. Tỉ lệ kỳ vọng xấp xỉ 60/20/20, tức khoảng 10.505 / 3.502 / 3.502 ảnh (số suy ra từ tỉ lệ, **bạn ghi số đếm thật**).
+2. Giao của từng cặp tập (train∩val, train∩test, val∩test) theo tên file phải **rỗng**; hợp ba tập phải bằng đúng 17.509 ảnh.
+3. Mọi file trong CSV đều tồn tại trong thư mục ảnh.
+
+Nếu số đếm lệch rõ rệt khỏi 60/20/20 (hơn khoảng 1 điểm phần trăm) hoặc giao khác rỗng, hãy báo giảng viên trước khi chạy tiếp.
+
+### 2.2 Cách đánh giá (BẮT BUỘC)
+
+**Tập đánh giá và thời điểm dùng:**
+
+| Giai đoạn | Tập dùng | Mục đích |
+|---|---|---|
+| Sàng backbone, ablation huấn luyện, so sánh suy luận | **val** | Chọn cấu hình |
+| Chọn checkpoint trong một lần chạy | **val** | Epoch có macro-F1 val cao nhất (hòa thì lấy epoch sớm hơn) |
+| Khớp nhiệt độ T (temperature scaling) | **val** | Một T duy nhất, áp dụng sang test |
+| **Chung kết** (GUIDE mục 5) | **test** | Chạy **đúng một lần cho mỗi seed**, trên **toàn bộ** tập test (không lấy mẫu con, không loại ảnh) |
+
+**Tiền xử lý lúc đánh giá:** không dùng augmentation ngẫu nhiên; chỉ resize hoặc center-crop và chuẩn hoá giống hệt lúc val. `model.eval()`. Ngoại lệ chỉ là các thí nghiệm suy luận cố ý đổi tiền xử lý (TTA, độ phân giải kiểm tra); khi đó khai báo rõ trong `results.xlsx`.
+
+**Định nghĩa chỉ số** (mọi con số trong bảng và báo cáo phải theo định nghĩa này):
+
+| Chỉ số | Định nghĩa |
+|---|---|
+| **Top-1 accuracy** | Số ảnh dự đoán đúng / tổng số ảnh của tập, không trọng số theo lớp |
+| **Macro-F1** (chỉ số chính) | Trung bình cộng F1 của **9 lớp**, mỗi lớp trọng số bằng nhau (ví dụ `sklearn.metrics.f1_score(average="macro")`) |
+| Balanced accuracy | Trung bình recall của 9 lớp |
+| Precision, recall, F1 theo lớp | Tính riêng cho từng lớp; bắt buộc báo cáo cho **Chinee apple** và **Snake weed** (hai lớp khó nhất, xem 2.3) |
+| Ma trận nhầm lẫn | Số lượng ảnh, hàng là nhãn thật, cột là nhãn dự đoán |
+| **ECE** | 15 bin đều theo độ tin cậy; độ tin cậy = max softmax; `ECE = Σ_m (n_m / n) · abs(acc_m − conf_m)`, với `n_m` là số ảnh trong bin m, `acc_m` và `conf_m` là accuracy và độ tin cậy trung bình của bin đó (slide trang 69) |
+| Độ trễ | p50 / p95 / p99 theo GUIDE mục 4.1 |
+| mean ± std | Qua **≥ 3 seed**, std mẫu (`ddof=1`). Ghi rõ số seed |
+
+Vì dữ liệu mất cân bằng (`Negative` ≈ 52%), **top-1 accuracy bị lớp `Negative` kéo cao**. Luôn báo cáo kèm macro-F1 và chỉ số từng lớp.
+
+**Quy trình chung kết (chi tiết ở GUIDE mục 5):** chốt cấu hình trên val, huấn luyện lại với ≥ 3 seed, chạy test một lần cho mỗi seed. Chạy cả **mốc so sánh** (công thức nền `T00` + suy luận 1-view `I00`) với cùng số seed để tính mức cải thiện. Với mỗi lần chạy test, **lưu file dự đoán** `predictions/<exp_id>_seed<k>_test.csv` gồm các cột `Filename, y_true, y_pred, p0, p1, …, p8` (xác suất softmax; thứ tự lớp theo cột `Label` của `labels.csv`). Giảng viên sẽ **tính lại chỉ số từ file này**; số trong báo cáo và xlsx phải khớp.
+
+### 2.3 Số tham khảo từ bài báo gốc
+
+Các số dưới đây lấy từ [bài báo gốc (Scientific Reports 2019)](https://pmc.ncbi.nlm.nih.gov/articles/PMC6375952). Rubric dùng chúng làm mốc (xem `RUBRIC.md` mục I). Đây là số **trích dẫn**, không phải kết quả của bạn.
+
+| Nội dung | Giá trị theo bài báo |
+|---|---|
+| ResNet-50, độ chính xác trung bình (weighted average, 5 fold) | **95,7%** |
+| Inception-v3, độ chính xác trung bình (weighted average, 5 fold) | **95,1%** |
+| ResNet-50, lớp tốt nhất | `Negative` 97,6%; Parkinsonia 97,2% |
+| ResNet-50, lớp kém nhất | **Chinee apple 88,5%**; **Snake weed 88,8%** |
+| Nhầm lẫn chính | 3,4% Chinee apple bị đoán thành Snake weed và 4,1% chiều ngược lại; 1,3% Parkinsonia bị đoán thành Prickly acacia |
+| Suy luận ResNet-50 trên Jetson TX2 | 180 ms (TensorFlow); 53,4 ms (TensorRT) |
+
+**Điều kiện huấn luyện của bài báo (rất khác bài lab này):** Keras, Adam, LR 1e-4 (giảm một nửa khi val loss không giảm sau 16 epoch), khởi tạo ImageNet, khoảng **100 epoch**, augmentation mạnh (xoay ±360°, scale, đổi màu, perspective), mỗi model train trung bình 13 giờ trên GTX 1080Ti.
+
+Lưu ý khi so sánh với kết quả của bạn:
+
+- Bài lab dùng **10–15 epoch** và công thức đơn giản hơn nhiều, nên có thể thấp hơn các số trên. Đó là bình thường.
+- Bài báo ghi "weighted average accuracy"; bài lab đo top-1 accuracy không trọng số. Hai định nghĩa có thể không trùng hoàn toàn, nên so sánh chỉ mang tính tham khảo.
+- Các số theo lớp của bài báo được coi là tương đương recall theo lớp khi đối chiếu (giả định, bài báo không nói rõ).
+- Bài báo chia ngẫu nhiên, không theo địa điểm, nên điểm test có thể hơi lạc quan so với khi gặp địa điểm mới. Hãy nêu điều này trong phần *Hạn chế* của báo cáo.
 
 ## 3. Môi trường gợi ý: Google Colab hoặc Kaggle
 
@@ -68,6 +149,7 @@ Gợi ý chung:
 | 3 | `curves/` | **Ảnh biểu đồ training của từng thí nghiệm** (loss và metric theo epoch, train và val), một ảnh `.png` cho mỗi `exp_id` |
 | 4 | `code/` | **Toàn bộ code** do bạn viết: định nghĩa model, dataset/augmentation, train loop, các loss, inference/TTA/ensemble, đo độ trễ, tạo bảng và biểu đồ |
 | 5 | `README.md` riêng của bạn | Link notebook Colab/Kaggle chạy lại được, phiên bản thư viện, lệnh/thứ tự chạy, seed đã dùng |
+| 6 | `predictions/` | File dự đoán trên **test** của các cấu hình chung kết và mốc, từng seed (định dạng ở mục 2.2). Dùng để giảng viên tính lại chỉ số |
 
 Số thí nghiệm tối thiểu (chi tiết ở GUIDE):
 
@@ -90,12 +172,15 @@ submissions/<mssv>_<ho_ten_khong_dau>/
 │   ├── B01_resnet50.png
 │   ├── T03_cutmix.png
 │   └── ...            # mỗi exp_id một ảnh
+├── predictions/
+│   ├── F01_seed0_test.csv
+│   └── ...            # chung kết + mốc, mỗi seed một file
 └── code/
     ├── *.ipynb
     └── *.py           # model, train, inference, benchmark, ...
 ```
 
-3. **Không commit** dataset (`images.zip`, ảnh) và checkpoint lớn. Chỉ commit code, `results.xlsx`, báo cáo và ảnh biểu đồ. Nếu cần chia sẻ checkpoint, đặt link ở README riêng của bạn.
+3. **Không commit** dataset (`images.zip`, ảnh) và checkpoint lớn. Chỉ commit code, `results.xlsx`, báo cáo, ảnh biểu đồ và file `predictions/` (nhỏ). Nếu cần chia sẻ checkpoint, đặt link ở README riêng của bạn.
 4. Nộp bài theo cách giảng viên thông báo (ví dụ Pull Request vào repo này, hoặc nén thư mục và nộp lên hệ thống của lớp). Hạn nộp do giảng viên công bố.
 
 ## 6. Quy tắc trung thực học thuật
