@@ -32,8 +32,9 @@ pip install timm scikit-learn pandas matplotlib openpyxl onnx onnxruntime
 python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 ```
 
-Dữ liệu (không commit): ảnh giải nén vào `images/` ở **thư mục gốc repo** (17.509 file .jpg, MD5 của
-`images.zip` = `b7b30f96d466fba86016aa5a26606e0f`), nhãn fold 0 ở `data/labels/` (đã có trong repo).
+Dữ liệu (không commit): ảnh giải nén vào `images\` ở **thư mục gốc repo** (17.509 file .jpg, MD5 của
+`images.zip` = `b7b30f96d466fba86016aa5a26606e0f`), các file CSV của Alex Olsen (`labels.csv`, `train/val/test_subset0.csv`) ở `data\labels\` cũng ở thư mục gốc repo
+(thư mục `data/` bị .gitignore nên phải tự chép/tải). Code tìm hai thư mục này theo vị trí `eval.py`, nên chạy từ đâu cũng được.
 Nếu để chỗ khác, đặt biến môi trường `LAB_IMAGES` và `LAB_LABELS`.
 
 ## Thứ tự chạy

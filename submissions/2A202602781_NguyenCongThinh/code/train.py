@@ -56,6 +56,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# [Implemented by Claude (AI assistant)] Vị trí dữ liệu, tính từ thư mục gốc repo (nơi có eval.py) nên đúng với
+# mọi thư mục làm việc: ảnh ở <repo>/images, CSV của Alex Olsen ở <repo>/data/labels.
+# Ghi đè bằng biến môi trường LAB_IMAGES / LAB_LABELS nếu để dữ liệu ở chỗ khác.
+IMAGES_DIR = os.environ.get("LAB_IMAGES", str(REPO_ROOT / "images"))
+LABELS_DIR = os.environ.get("LAB_LABELS", str(REPO_ROOT / "data" / "labels"))
+
 from eval import compute_metrics, save_predictions  # noqa: E402  (eval.py gốc, không sửa)
 
 import dataset as ds_mod  # noqa: E402
@@ -95,8 +101,8 @@ class Config:
     amp: bool = True
     num_workers: int = 2
     # --- đường dẫn ---
-    images_dir: str = "data/images"
-    labels_dir: str = "data/labels"
+    images_dir: str = IMAGES_DIR      # [Claude] <repo>/images (xem IMAGES_DIR ở đầu file)
+    labels_dir: str = LABELS_DIR      # [Claude] <repo>/data/labels
     out_dir: str = "runs"             # config.json, history.csv, checkpoint, logit của từng lần chạy
     pred_dir: str = "predictions"     # file dự đoán đúng định dạng eval.py (nộp cùng bài)
     # --- chỉ bật ở Bước 4 (chung kết): ghi predictions trên TEST. Mặc định TẮT (quy tắc S4). ---

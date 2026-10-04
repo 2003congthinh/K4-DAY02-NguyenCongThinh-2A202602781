@@ -76,8 +76,7 @@ BASE = Config(
     exp_id="T00", seed=0, img_size=P["img_size"], epochs=P["epochs"],
     batch_size=int(os.environ.get("LAB_BATCH", P["batch_size"])),  # LAB_BATCH: giảm nếu hết VRAM (ghi vào báo cáo)
     amp=P["amp"], num_workers=P["num_workers"], channels_last=P["channels_last"], device="auto",
-    images_dir=os.environ.get("LAB_IMAGES", "../../images"),
-    labels_dir=os.environ.get("LAB_LABELS", "../../data/labels"),
+    images_dir=train.IMAGES_DIR, labels_dir=train.LABELS_DIR,   # <repo>/images và <repo>/data/labels
     out_dir="runs", pred_dir="predictions", curves_dir="curves", cache_dir="runs/cache",
     limit_train_batches=P.get("limit_train_batches"),
 )

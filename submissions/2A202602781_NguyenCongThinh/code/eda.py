@@ -2,7 +2,7 @@
 
 [Implemented by Claude (AI assistant)]
 Chạy từ thư mục bài nộp (submissions/<mssv>_<ten>/):
-    python code/eda.py --images ../../images --labels ../../data/labels
+    python code/eda.py            (mặc định: ảnh ở <repo>/images, CSV ở <repo>/data/labels)
 Ghi ra:
     figures/eda_class_distribution.png   biểu đồ cột số ảnh mỗi lớp theo train/val/test
     figures/eda_samples.png              3 ảnh mỗi lớp
@@ -272,8 +272,8 @@ def main() -> None:
     Input : --images, --labels, --img-size, --backbones. Output: None (in tóm tắt).
     """
     ap = argparse.ArgumentParser()
-    ap.add_argument("--images", default="../../images")
-    ap.add_argument("--labels", default="../../data/labels")
+    ap.add_argument("--images", default=train.IMAGES_DIR)
+    ap.add_argument("--labels", default=train.LABELS_DIR)
     ap.add_argument("--img-size", type=int, default=224)
     ap.add_argument("--backbones", nargs="*", default=["resnet50", "mobilenetv3_large_100"])
     args = ap.parse_args()
