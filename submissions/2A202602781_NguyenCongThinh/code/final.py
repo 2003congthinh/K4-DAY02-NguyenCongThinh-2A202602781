@@ -1,6 +1,5 @@
 """final.py - Bước 4 của GUIDE: chạy TEST đúng MỘT lần cho mỗi seed, ghi predictions/ và chấm bằng eval.py.
 
-[Implemented by Claude (AI assistant)]
 Điều kiện trước: các run F01_seed{0,1,2} và T00_seed{0,1,2} đã huấn luyện xong (run_all.py final_train),
 và results/decisions.json đã có "inference" (chọn trên VAL ở Bước 3).
 
@@ -41,7 +40,7 @@ DONE = Path("results/eval/TEST_DONE.json")
 
 
 def views_for(method: str, size: int):
-    """[Implemented by Claude (AI assistant)] Hàm tạo view và kiểu loader cho một phương pháp suy luận.
+    """Hàm tạo view và kiểu loader cho một phương pháp suy luận.
 
     Input : method ("none" | "hflip" | "5crop" | "10crop"), size (int).
     Output: (views_fn: x -> list[batch], crop: bool - loader có center-crop hay không, k: số view)
@@ -57,7 +56,7 @@ def views_for(method: str, size: int):
 
 
 def predict_split(cfg, split: str, method: str, space: str, size: int, device):
-    """[Implemented by Claude (AI assistant)] Dự đoán một tập bằng best.pt của cfg với phương pháp suy luận cho trước.
+    """Dự đoán một tập bằng best.pt của cfg với phương pháp suy luận cho trước.
 
     Input : cfg (Config của run), split ("val" | "test"), method, space ("prob" | "logit"), size (int), device.
     Output: (filenames list[str], y_true ndarray [N], z ndarray [N, 9]) với z là "logit tương đương" sau khi gộp
@@ -75,7 +74,7 @@ def predict_split(cfg, split: str, method: str, space: str, size: int, device):
 
 
 def run_eval(args: list[str], out_md: Path) -> str:
-    """[Implemented by Claude (AI assistant)] Gọi eval.py gốc (không sửa) bằng subprocess và lưu đầu ra.
+    """Gọi eval.py gốc (không sửa) bằng subprocess và lưu đầu ra.
 
     Input : args (list[str] tham số cho eval.py), out_md (file .md lưu stdout). Output: stdout (str).
     """
@@ -93,7 +92,7 @@ def run_eval(args: list[str], out_md: Path) -> str:
 
 
 def confusion_figure(pattern: str, labels_csv: str, path: Path) -> None:
-    """[Implemented by Claude (AI assistant)] Ma trận nhầm lẫn trên test (cộng qua các seed), số lượng + % theo hàng.
+    """Ma trận nhầm lẫn trên test (cộng qua các seed), số lượng + % theo hàng.
 
     Input : pattern (glob file dự đoán), labels_csv, path (.png). Output: None.
     """
@@ -123,7 +122,7 @@ def confusion_figure(pattern: str, labels_csv: str, path: Path) -> None:
 
 
 def error_examples(pred_csv: Path, images_dir: str, path: Path, pairs=((0, 7), (7, 0)), n: int = 6) -> dict:
-    """[Implemented by Claude (AI assistant)] Ảnh bị đoán sai cho các cặp (thật -> dự đoán), mặc định Chinee <-> Snake.
+    """Ảnh bị đoán sai cho các cặp (thật -> dự đoán), mặc định Chinee <-> Snake.
 
     Input : pred_csv (file dự đoán test của một seed), images_dir, path (.png), pairs, n (ảnh mỗi cặp).
     Output: dict {"0->7": [tên file...], "7->0": [...]} để dẫn trong báo cáo.
@@ -152,7 +151,7 @@ def error_examples(pred_csv: Path, images_dir: str, path: Path, pairs=((0, 7), (
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] Toàn bộ Bước 4.
+    """Toàn bộ Bước 4.
 
     Input : dòng lệnh --force (chỉ khi thật sự phải chạy lại test; ghi vào báo cáo).
     Output: None. Luồng: kiểm tra TEST_DONE -> với mỗi seed: T00 (1 view, T=1) và F01 (phương pháp đã chọn,

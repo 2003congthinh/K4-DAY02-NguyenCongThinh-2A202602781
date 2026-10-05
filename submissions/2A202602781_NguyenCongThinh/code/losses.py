@@ -1,6 +1,6 @@
 """losses.py - các hàm loss và trộn mẫu (Mixup, CutMix).
 
-PSEUDO-CODE: bạn tự hoàn thiện mọi hàm/lớp có `raise NotImplementedError`.
+Đã hoàn thiện mọi hàm/lớp của bộ khung `starter/`.
 Liên hệ slide Day 2: label smoothing (trang 56), focal loss (trang 57), Mixup/CutMix (trang 48).
 
 Giao diện bạn phải giữ:
@@ -11,7 +11,7 @@ Giao diện bạn phải giữ:
 """
 from __future__ import annotations
 
-# [Implemented by Claude (AI assistant)] imports for the implementation below.
+# imports for the implementation below.
 import numpy as np
 import torch
 import torch.nn as nn
@@ -24,13 +24,6 @@ def build_criterion(kind: str = "ce", **kw):
     Ví dụ kw: smoothing=0.1, gamma=2.0, alpha=None, weight=tensor.
     TODO: tạo đúng loss, hoặc gọi các lớp bên dưới.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : kind (str) - "ce" | "ls" | "focal" | "ce_weighted"
-    #         kw: smoothing (float, cho "ls", mặc định 0.1); gamma (float, cho "focal", mặc định 2.0);
-    #             alpha (tensor[9] | None, cho "focal"); weight (tensor[9], BẮT BUỘC cho "ce_weighted")
-    # Output: nn.Module gọi được dạng criterion(logits[B, 9], target[B] int64) -> tensor vô hướng (trung bình batch)
-    # Cách làm: chọn lớp loss tương ứng. "ce_weighted" dùng nn.CrossEntropyLoss(weight=...) với trọng số
-    #   tính từ số ảnh TRAIN bằng class_weights(); trung bình có trọng số theo định nghĩa của PyTorch.
     if kind == "ce":
         return nn.CrossEntropyLoss()
     if kind == "ls":
@@ -52,19 +45,13 @@ class LabelSmoothingCE(nn.Module):  # TODO: kế thừa torch.nn.Module
     """
 
     def __init__(self, smoothing: float = 0.1):
-        # [Implemented by Claude (AI assistant)] TỰ CÀI ĐẶT (không dùng tham số label_smoothing của PyTorch).
-        # Input : smoothing (float) eps trong [0, 1). Output: module loss.
+        # TỰ CÀI ĐẶT (không dùng tham số label_smoothing của PyTorch).
         super().__init__()
         if not 0.0 <= smoothing < 1.0:
             raise ValueError("smoothing phải trong [0, 1)")
         self.smoothing = smoothing
 
     def forward(self, logits, target):
-        # [Implemented by Claude (AI assistant)]
-        # Input : logits (tensor [B, K] float), target (tensor [B] int64)
-        # Output: tensor vô hướng = mean_b sum_k -q'(k) log p(k)
-        # Cách làm: -sum_k q'(k) log p(k) = (1 - eps) * (-log p_y) + eps * mean_k(-log p_k);
-        #   eps = 0 cho lại đúng CE (kiểm tra trong test_codes.py).
         logp = F.log_softmax(logits.float(), dim=1)
         nll = -logp.gather(1, target[:, None]).squeeze(1)
         uniform = -logp.mean(dim=1)
@@ -81,9 +68,6 @@ class FocalLoss(nn.Module):  # TODO: kế thừa torch.nn.Module
     """
 
     def __init__(self, gamma: float = 2.0, alpha=None):
-        # [Implemented by Claude (AI assistant)]
-        # Input : gamma (float >= 0); alpha (None | sequence/tensor độ dài K) trọng số theo lớp.
-        # Output: module loss. alpha được lưu dạng buffer để tự chuyển theo .to(device).
         super().__init__()
         self.gamma = float(gamma)
         if alpha is None:
@@ -92,11 +76,6 @@ class FocalLoss(nn.Module):  # TODO: kế thừa torch.nn.Module
             self.register_buffer("alpha", torch.as_tensor(alpha, dtype=torch.float32))
 
     def forward(self, logits, target):
-        # [Implemented by Claude (AI assistant)]
-        # Input : logits [B, K], target [B] int64. Output: tensor vô hướng (trung bình batch).
-        # Cách làm: log p_t = log_softmax(logits)[y]; p_t = exp(log p_t);
-        #   loss_b = -(1 - p_t)^gamma * log p_t (* alpha[y] nếu có), rồi lấy mean.
-        #   gamma = 0, alpha = None => đúng bằng cross-entropy (kiểm tra trong test_codes.py).
         logp = F.log_softmax(logits.float(), dim=1)
         logpt = logp.gather(1, target[:, None]).squeeze(1)
         pt = logpt.exp()
@@ -115,11 +94,6 @@ def class_weights(counts, beta: float = 0.0):
 
     TODO: trả về tensor độ dài 9. Chỉ dùng số liệu của train, không dùng val hay test.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : counts (sequence/ndarray độ dài 9) - số ảnh mỗi lớp trong TẬP TRAIN; beta (float, 0 <= beta < 1)
-    # Output: torch.FloatTensor[9]; trung bình = 1 (tức tổng = 9) ở cả hai chế độ.
-    # Cách làm: beta=0: w_c = 1/n_c; beta>0: w_c = (1 - beta) / (1 - beta^n_c) (Cui et al.).
-    #   Sau đó chuẩn hoá w <- w * K / sum(w). train.run gọi hàm này với số đếm của train_df.
     n = np.asarray(counts, dtype=np.float64)
     if (n <= 0).any():
         raise ValueError("mỗi lớp phải có ít nhất 1 ảnh train")
@@ -144,14 +118,6 @@ def mix_batch(x, y, alpha: float = 1.0, mode: str = "cutmix"):
 
     TODO: tự cài đặt. Kiểm tra bằng mắt: vẽ vài ảnh sau khi trộn và in lam.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : x (tensor [B, C, H, W]), y (tensor [B] int64), alpha (float > 0) tham số Beta,
-    #         mode (str) "mixup" | "cutmix"
-    # Output: (x_mix [B, C, H, W], (y_a [B], y_b [B], lam float)) với y_a = y, y_b = y[perm]
-    # Cách làm: lam ~ Beta(alpha, alpha) (numpy, đã được train.set_seed cố định); perm = hoán vị batch
-    #   (torch.randperm). mixup: nội suy tuyến tính hai ảnh. cutmix: hộp có cạnh H*sqrt(1-lam) x W*sqrt(1-lam),
-    #   tâm ngẫu nhiên, bị cắt theo biên ảnh; dán vùng đó từ x[perm] vào bản sao của x, rồi tính LẠI
-    #   lam = 1 - diện tích hộp thật / (H*W) để nhãn khớp đúng tỉ lệ pixel. Được gọi bởi train.train_one_epoch.
     lam = float(np.random.beta(alpha, alpha))
     perm = torch.randperm(x.size(0), device=x.device)
     if mode == "mixup":
@@ -176,9 +142,5 @@ def mixed_loss(criterion, logits, targets):
 
     TODO. Lưu ý: accuracy trên batch đã trộn không còn nghĩa bình thường; đánh giá bằng val.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : criterion (callable loss), logits [B, K], targets = (y_a, y_b, lam) từ mix_batch
-    # Output: tensor vô hướng = lam * L(logits, y_a) + (1 - lam) * L(logits, y_b)
-    #   (với CE, biểu thức này tương đương CE với nhãn mềm lam*onehot(y_a) + (1-lam)*onehot(y_b)).
     y_a, y_b, lam = targets
     return lam * criterion(logits, y_a) + (1.0 - lam) * criterion(logits, y_b)

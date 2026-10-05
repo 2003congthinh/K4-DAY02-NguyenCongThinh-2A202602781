@@ -1,6 +1,5 @@
 """make_results.py - Bước 5: tổng hợp mọi kết quả thành results.xlsx, bảng markdown và biểu đồ tổng hợp.
 
-[Implemented by Claude (AI assistant)]
 Chạy từ thư mục bài nộp:  python code/make_results.py      (thường gọi qua run_all.py results)
 Đọc: runs/*/seed*/summary.json, results/*.csv|json, predictions/*.csv
 Ghi: results.xlsx (sheet Backbones, Training, Inference, Final, PerClass, Latency, Summary - GUIDE 6.1),
@@ -30,7 +29,7 @@ CHINEE, SNAKE = 0, 7
 
 
 def _summary(key: str) -> dict | None:
-    """[Implemented by Claude (AI assistant)] summary.json của run theo khoá, hoặc None nếu chưa chạy."""
+    """summary.json của run theo khoá, hoặc None nếu chưa chạy."""
     try:
         f = train.run_dir(ex.get_cfg(key)) / "summary.json"
     except RuntimeError:
@@ -39,7 +38,7 @@ def _summary(key: str) -> dict | None:
 
 
 def sheet_backbones() -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet Backbones (GUIDE 6.1). Output: DataFrame một dòng mỗi B0x."""
+    """Sheet Backbones (GUIDE 6.1). Output: DataFrame một dòng mỗi B0x."""
     lat = pd.read_csv("results/backbone_latency.csv").set_index("exp_id") if Path("results/backbone_latency.csv").exists() else None
     chosen = ex.load_decisions().get("chosen_backbone")
     rows = []
@@ -59,7 +58,7 @@ def sheet_backbones() -> pd.DataFrame:
 
 
 def sheet_training() -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet Training: T00..T12, Δ so với T00, F1 lớp hiếm (val, seed 0)."""
+    """Sheet Training: T00..T12, Δ so với T00, F1 lớp hiếm (val, seed 0)."""
     dec = ex.load_decisions()
     base = _summary("T00")
     if base is None:
@@ -82,7 +81,7 @@ def sheet_training() -> pd.DataFrame:
 
 
 def sheet_inference() -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet Inference từ results/inference.csv (đổi tên cột kèm đơn vị)."""
+    """Sheet Inference từ results/inference.csv (đổi tên cột kèm đơn vị)."""
     f = Path("results/inference.csv")
     if not f.exists():
         return pd.DataFrame()
@@ -95,12 +94,12 @@ def sheet_inference() -> pd.DataFrame:
 
 
 def _group(pattern: str, ref_csv: str | None):
-    """[Implemented by Claude (AI assistant)] eval.load_group nếu có file khớp, ngược lại None."""
+    """eval.load_group nếu có file khớp, ngược lại None."""
     return ev.load_group(pattern, ref_csv) if glob.glob(pattern) else None
 
 
 def sheet_final() -> tuple[pd.DataFrame, dict]:
-    """[Implemented by Claude (AI assistant)] Sheet Final: từng seed + dòng mean ± std cho F01, mốc T00, F01 chưa TS.
+    """Sheet Final: từng seed + dòng mean ± std cho F01, mốc T00, F01 chưa TS.
 
     Output: (DataFrame, groups) với groups = {"F01": eval.Group, "T00": ..., "F01_uncal": ...} để dùng lại.
     """
@@ -137,7 +136,7 @@ def sheet_final() -> tuple[pd.DataFrame, dict]:
 
 
 def sheet_perclass(groups: dict) -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet PerClass: precision/recall/F1 (mean ± std qua seed) từng lớp, test."""
+    """Sheet PerClass: precision/recall/F1 (mean ± std qua seed) từng lớp, test."""
     names = ev.load_names(str(Path(ex.BASE.labels_dir) / "labels.csv"))
     rows = []
     for tag in ("F01", "T00"):
@@ -153,7 +152,7 @@ def sheet_perclass(groups: dict) -> pd.DataFrame:
 
 
 def sheet_latency() -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet Latency: mọi điều kiện đo (Bước 1 sơ bộ, Bước 3, pipeline chung kết)."""
+    """Sheet Latency: mọi điều kiện đo (Bước 1 sơ bộ, Bước 3, pipeline chung kết)."""
     parts = []
     if Path("results/latency.csv").exists():
         parts.append(pd.read_csv("results/latency.csv"))
@@ -175,7 +174,7 @@ def sheet_latency() -> pd.DataFrame:
 
 
 def sheet_summary(bb: pd.DataFrame, tr: pd.DataFrame, infr: pd.DataFrame, fin: pd.DataFrame, groups: dict) -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Sheet Summary: top 10 theo macro-F1 val + so sánh chung kết vs mốc trên test."""
+    """Sheet Summary: top 10 theo macro-F1 val + so sánh chung kết vs mốc trên test."""
     rows = []
     for _, r in bb.iterrows():
         rows.append({"exp_id": r["exp_id"], "loại": "backbone", "mô tả": r["backbone"], "macro-F1 val": r["macro-F1 val"],
@@ -204,7 +203,7 @@ def sheet_summary(bb: pd.DataFrame, tr: pd.DataFrame, infr: pd.DataFrame, fin: p
 
 
 def write_xlsx(sheets: dict[str, pd.DataFrame], path: Path) -> None:
-    """[Implemented by Claude (AI assistant)] Ghi xlsx có định dạng: freeze tiêu đề, 4 chữ số, độ rộng cột, tô dòng tốt nhất.
+    """Ghi xlsx có định dạng: freeze tiêu đề, 4 chữ số, độ rộng cột, tô dòng tốt nhất.
 
     Input : sheets (dict tên sheet -> DataFrame), path. Output: None.
     """
@@ -237,7 +236,7 @@ def write_xlsx(sheets: dict[str, pd.DataFrame], path: Path) -> None:
 
 
 def figures(bb: pd.DataFrame, tr: pd.DataFrame) -> None:
-    """[Implemented by Claude (AI assistant)] Biểu đồ tổng hợp: backbone (F1 theo độ trễ, cỡ chấm = params) và Δ của T."""
+    """Biểu đồ tổng hợp: backbone (F1 theo độ trễ, cỡ chấm = params) và Δ của T."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -264,7 +263,7 @@ def figures(bb: pd.DataFrame, tr: pd.DataFrame) -> None:
 
 
 def to_md(df: pd.DataFrame) -> str:
-    """[Implemented by Claude (AI assistant)] DataFrame -> bảng markdown (số thực 4 chữ số). Output: str."""
+    """DataFrame -> bảng markdown (số thực 4 chữ số). Output: str."""
     if df.empty:
         return "_(chưa có dữ liệu)_"
     d = df.copy()
@@ -276,7 +275,7 @@ def to_md(df: pd.DataFrame) -> str:
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] Tạo results.xlsx + results/tables.md + figures. Input/Output: không/None."""
+    """Tạo results.xlsx + results/tables.md + figures. Input/Output: không/None."""
     bb, tr, infr = sheet_backbones(), sheet_training(), sheet_inference()
     fin, groups = sheet_final()
     pc, lat = sheet_perclass(groups), sheet_latency()

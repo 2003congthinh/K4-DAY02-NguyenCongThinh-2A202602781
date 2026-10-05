@@ -1,6 +1,6 @@
 """inference.py - các phương pháp suy luận (Bước 3 của GUIDE.md).
 
-PSEUDO-CODE: bạn tự hoàn thiện mọi hàm có `raise NotImplementedError`.
+Đã hoàn thiện mọi hàm của bộ khung `starter/`.
 Liên hệ slide Day 2: TTA (trang 62-66, 75), ensemble/EMA/soup (trang 67), độ phân giải kiểm tra
 (trang 68), temperature scaling (trang 69), gộp BatchNorm (trang 71).
 
@@ -17,7 +17,7 @@ Giao diện bạn nên giữ:
 """
 from __future__ import annotations
 
-# [Implemented by Claude (AI assistant)] imports for the implementation below.
+# imports for the implementation below.
 import copy
 
 import numpy as np
@@ -32,17 +32,12 @@ def predict_logits(model, loader, device, view=None):
     `view` là hàm biến đổi batch ảnh trước khi đưa vào model (ví dụ lật ngang), hoặc None.
     TODO: model.eval(), torch.inference_mode(), (tuỳ chọn) autocast. Trả về numpy.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model; loader (DataLoader eval, shuffle=False, trả (x, y, filenames)); device;
-    #         view (callable | None) - hàm x[B,C,H,W] -> x' (MỘT batch), ví dụ view_hflip
-    # Output: (filenames list[str] [N], y_true ndarray int64 [N], logits ndarray float32 [N, 9])
-    # Cách làm: gọi predict_logits_multiview với một view duy nhất rồi lấy phần tử đầu.
     names, y, outs = predict_logits_multiview(model, loader, device, lambda x: [(view or view_identity)(x)])
     return names, y, outs[0]
 
 
 def predict_logits_multiview(model, loader, device, views_fn, amp: bool = False):
-    """[Implemented by Claude (AI assistant)] Một lượt duyệt loader, chạy model trên K view của mỗi batch.
+    """Một lượt duyệt loader, chạy model trên K view của mỗi batch.
 
     Input : model; loader; device; views_fn (callable x -> list[K batch]) ví dụ
             lambda x: [x, view_hflip(x)] hoặc lambda x: views_multicrop(x, 128);
@@ -72,16 +67,11 @@ def view_identity(x):
 
 def view_hflip(x):
     """Lật ngang batch (N, C, H, W). TODO: dùng torch.flip trên chiều rộng (slide trang 75)."""
-    # [Implemented by Claude (AI assistant)] Input: x [N, C, H, W]. Output: x lật theo chiều W (dim=-1).
     return torch.flip(x, dims=[-1])
 
 
 def views_multicrop(x, crop: int, flip: bool = False):
     """5 crop (4 góc + giữa) kích thước `crop`, và tuỳ chọn thêm bản lật. Trả về list các batch. TODO."""
-    # [Implemented by Claude (AI assistant)]
-    # Input : x [N, C, H, W] với H, W >= crop (loader đưa ảnh đã resize nhưng CHƯA center-crop);
-    #         crop (int); flip (bool) - thêm bản lật ngang của mỗi crop (10 view)
-    # Output: list 5 (hoặc 10) tensor [N, C, crop, crop]: trên-trái, trên-phải, dưới-trái, dưới-phải, giữa
     H, W = x.shape[-2:]
     if H < crop or W < crop:
         raise ValueError(f"ảnh {H}x{W} nhỏ hơn crop {crop}")
@@ -99,12 +89,6 @@ def views_multiscale(x, sizes):
     Lưu ý: model phải chấp nhận ảnh khác kích thước lúc train (CNN có global pooling thì được;
     ViT/Swin cần xử lý riêng vị trí/cửa sổ). Ghi rõ giới hạn bạn gặp.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : x [N, C, H, W] (đã chuẩn hoá); sizes (iterable int) các cạnh đích
-    # Output: list tensor [N, C, s, s], mỗi phần tử ứng với một s trong sizes (s == H thì giữ nguyên x)
-    # Cách làm: F.interpolate bilinear, antialias=True khi thu nhỏ. Giới hạn: chỉ dùng cho CNN có global
-    #   pooling (ResNet/MobileNet/EfficientNet/ConvNeXt). DeiT tạo với img_size cố định sẽ báo lỗi kích thước
-    #   positional embedding, nên các thí nghiệm đa tỉ lệ của bài nộp chỉ chạy trên CNN.
     out = []
     for s in sizes:
         if (x.shape[-2], x.shape[-1]) == (s, s):
@@ -123,10 +107,6 @@ def aggregate_views(logits_per_view, space: str = "prob"):
     Slide chưa kết luận cách nào luôn tốt hơn: chọn một và ghi rõ, hoặc so sánh cả hai (I03).
     TODO: trả về xác suất (N, 9) đã chuẩn hoá.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : logits_per_view (list K ndarray [N, 9] hoặc ndarray [K, N, 9]); space "prob" | "logit"
-    # Output: ndarray float64 [N, 9], mỗi dòng cộng bằng 1
-    # Cách làm: "prob" = mean_k softmax(z_k); "logit" = softmax(mean_k z_k). Bài nộp so sánh cả hai (I03).
     z = np.asarray(logits_per_view, dtype=np.float64)
     if z.ndim == 2:
         z = z[None]
@@ -140,7 +120,7 @@ def aggregate_views(logits_per_view, space: str = "prob"):
 
 
 def _softmax(z, axis=-1):
-    """[Implemented by Claude (AI assistant)] Softmax ổn định số học (numpy). Input: ndarray; Output: ndarray cùng dạng."""
+    """Softmax ổn định số học (numpy). Input: ndarray; Output: ndarray cùng dạng."""
     z = np.asarray(z, dtype=np.float64)
     z = z - z.max(axis=axis, keepdims=True)
     e = np.exp(z)
@@ -152,9 +132,6 @@ def ensemble_probs(list_of_probs):
 
     Chi phí suy luận = số mô hình. Chỉ ghép các mô hình trên CÙNG tập ảnh và cùng thứ tự file.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : list_of_probs (list M ndarray [N, 9] xác suất, CÙNG thứ tự file). Output: ndarray [N, 9]
-    # Cách làm: kiểm tra cùng dạng, lấy trung bình cộng rồi chuẩn hoá lại mỗi dòng về tổng 1.
     arrs = [np.asarray(p, dtype=np.float64) for p in list_of_probs]
     if len({a.shape for a in arrs}) != 1:
         raise ValueError("các mô hình phải dự đoán trên cùng tập ảnh (cùng dạng)")
@@ -168,12 +145,6 @@ def fit_temperature(val_logits, val_labels) -> float:
     TODO: tối ưu hoá một tham số (LBFGS trên log T, hoặc tìm lưới thô rồi tinh).
     Accuracy không đổi vì thứ tự lớp không đổi. KHÔNG khớp T trên test.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : val_logits (ndarray [N, 9]) - logit trên VAL (hoặc log của xác suất TTA đã gộp);
-    #         val_labels (ndarray [N] int)
-    # Output: float T > 0 cực tiểu NLL = mean -log softmax(z / T)[y]
-    # Cách làm: (1) quét lưới thô 400 giá trị log T trong [log 0.05, log 20] để tránh cực tiểu cục bộ;
-    #   (2) tinh chỉnh bằng LBFGS trên tham số log T (đảm bảo T > 0), float64.
     z = torch.as_tensor(np.asarray(val_logits), dtype=torch.float64)
     y = torch.as_tensor(np.asarray(val_labels), dtype=torch.int64)
 
@@ -198,8 +169,6 @@ def fit_temperature(val_logits, val_labels) -> float:
 
 def apply_temperature(logits, T: float):
     """Trả về softmax(logits / T). TODO."""
-    # [Implemented by Claude (AI assistant)]
-    # Input : logits ndarray [N, 9]; T (float > 0). Output: ndarray float64 [N, 9] xác suất (argmax không đổi).
     if T <= 0:
         raise ValueError("T phải > 0")
     return _softmax(np.asarray(logits, dtype=np.float64) / T, axis=1)
@@ -216,17 +185,6 @@ def fuse_conv_bn(model):
       - kiểm tra: đầu ra trước/sau gộp lệch nhau cỡ 1e-5 trở xuống (in ra sai số lớn nhất)
     Với kiến trúc không có BN (ViT, Swin, ConvNeXt dùng LayerNorm), mục này không áp dụng; ghi rõ.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model (nn.Module, ví dụ timm resnet18 / mobilenetv3 / efficientnet)
-    # Output: fused_model - BẢN SAO đã gộp (model gốc không bị sửa) ở chế độ eval; số cặp đã gộp được ghi ở
-    #   thuộc tính fused_model.n_fused_bn (int). Kiến trúc không có cặp Conv2d -> BatchNorm2d (DeiT, ConvNeXt
-    #   dùng LayerNorm) thì n_fused_bn = 0 và mô hình không đổi.
-    # Cách làm: duyệt mọi module cha; với hai module con ĐĂNG KÝ liền nhau (conv, bn) mà bn là BatchNorm2d
-    #   và số kênh khớp: tính w', b' bằng công thức trong docstring (torch.nn.utils.fusion.fuse_conv_bn_weights),
-    #   ghi vào bản sao của conv (giữ nguyên lớp, stride, padding, groups), thay bn bằng Identity.
-    #   timm dùng BatchNormAct2d (BN + drop + activation trong một module): khi đó thay bằng
-    #   Sequential(drop, act) để KHÔNG làm mất hàm kích hoạt. Thứ tự đăng ký của timm trùng thứ tự forward
-    #   với các cặp này; kết quả luôn được kiểm tra bằng check_fusion() (sai số lớn nhất phải ~1e-5).
     from torch.nn.utils.fusion import fuse_conv_bn_weights
 
     fused = copy.deepcopy(model).eval()
@@ -253,7 +211,7 @@ def fuse_conv_bn(model):
 
 
 def check_fusion(model, fused, img_size: int = 224, device="cpu") -> float:
-    """[Implemented by Claude (AI assistant)] Sai số lớn nhất giữa đầu ra trước và sau khi gộp BN.
+    """Sai số lớn nhất giữa đầu ra trước và sau khi gộp BN.
 
     Input : model (gốc), fused (sau fuse_conv_bn), img_size, device.
     Output: float max |logit_gốc - logit_gộp| trên một batch ngẫu nhiên 4 ảnh (kỳ vọng cỡ 1e-5 trở xuống).

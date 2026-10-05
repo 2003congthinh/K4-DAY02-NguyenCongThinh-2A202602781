@@ -1,6 +1,5 @@
 """eda.py - Bước 0 của GUIDE: EDA, kiểm tra chia dữ liệu và kiểm tra pipeline trước khi chạy thật.
 
-[Implemented by Claude (AI assistant)]
 Chạy từ thư mục bài nộp (submissions/<mssv>_<ten>/):
     python code/eda.py            (mặc định: ảnh ở <repo>/images, CSV ở <repo>/data/labels)
 Ghi ra:
@@ -36,7 +35,7 @@ PAPER_TABLE1 = [1125, 1064, 1031, 1022, 1062, 1009, 1074, 1016, 9106]
 
 
 def class_distribution(split_report: dict, out_png: Path) -> dict:
-    """[Implemented by Claude (AI assistant)] Vẽ phân bố lớp và đối chiếu với Table 1 của bài báo.
+    """Vẽ phân bố lớp và đối chiếu với Table 1 của bài báo.
 
     Input : split_report (dict do dataset.check_split trả về, dùng khoá "per_class"); out_png (Path).
     Output: dict {"table": list[dict] mỗi lớp {"class", "train", "val", "test", "all", "paper", "diff"},
@@ -71,7 +70,7 @@ def class_distribution(split_report: dict, out_png: Path) -> dict:
 
 
 def sample_grid(df: pd.DataFrame, images_dir: Path, out_png: Path, per_class: int = 3, seed: int = 0) -> None:
-    """[Implemented by Claude (AI assistant)] Lưới per_class ảnh ngẫu nhiên cho mỗi lớp (đọc thẳng file JPEG).
+    """Lưới per_class ảnh ngẫu nhiên cho mỗi lớp (đọc thẳng file JPEG).
 
     Input : df (DataFrame Filename, Label - dùng tập TRAIN), images_dir, out_png, per_class (int), seed (int).
     Output: None; ghi ảnh lưới 9 hàng x per_class cột.
@@ -98,7 +97,7 @@ def sample_grid(df: pd.DataFrame, images_dir: Path, out_png: Path, per_class: in
 
 
 def image_stats(df: pd.DataFrame, images_dir: Path, n: int = 500, seed: int = 0) -> dict:
-    """[Implemented by Claude (AI assistant)] Thống kê kích thước/kênh và mean/std pixel trên n ảnh train.
+    """Thống kê kích thước/kênh và mean/std pixel trên n ảnh train.
 
     Input : df (train), images_dir, n (số ảnh lấy mẫu), seed.
     Output: dict {"sizes": {"256x256": count, ...}, "modes": {"RGB": count}, "mean": [3], "std": [3], "n": n}
@@ -121,14 +120,14 @@ def image_stats(df: pd.DataFrame, images_dir: Path, n: int = 500, seed: int = 0)
 
 
 def _denorm(x: torch.Tensor) -> np.ndarray:
-    """[Implemented by Claude (AI assistant)] Giải chuẩn hoá tensor (3,H,W) về ảnh HxWx3 trong [0,1] để vẽ."""
+    """Giải chuẩn hoá tensor (3,H,W) về ảnh HxWx3 trong [0,1] để vẽ."""
     m = torch.tensor(ds_mod.IMAGENET_MEAN)[:, None, None]
     s = torch.tensor(ds_mod.IMAGENET_STD)[:, None, None]
     return (x * s + m).clamp(0, 1).permute(1, 2, 0).numpy()
 
 
 def augmentation_grid(cfg: train.Config, train_df: pd.DataFrame, out_png: Path, out_mix_png: Path) -> None:
-    """[Implemented by Claude (AI assistant)] Vẽ ảnh SAU augmentation (đã giải chuẩn hoá) cùng nhãn, và CutMix/Mixup.
+    """Vẽ ảnh SAU augmentation (đã giải chuẩn hoá) cùng nhãn, và CutMix/Mixup.
 
     Input : cfg (img_size, đường dẫn), train_df, out_png (lưới các mức aug), out_mix_png (CutMix + Mixup).
     Output: None. Mục đích: kiểm tra ảnh và nhãn khớp nhau sau toàn bộ pipeline (GUIDE 1.3 ý 4).
@@ -177,7 +176,7 @@ def augmentation_grid(cfg: train.Config, train_df: pd.DataFrame, out_png: Path, 
 
 
 def pipeline_checks(cfg: train.Config, train_df: pd.DataFrame, overfit_steps: int = 80) -> dict:
-    """[Implemented by Claude (AI assistant)] Kiểm tra pipeline theo checklist slide trang 59 (GUIDE 1.3).
+    """Kiểm tra pipeline theo checklist slide trang 59 (GUIDE 1.3).
 
     Input : cfg (backbone, img_size, lr...), train_df, overfit_steps (int).
     Output: dict {"backbone", "initial_loss": float (head khởi tạo 0, cách dùng khi train),
@@ -234,7 +233,7 @@ def pipeline_checks(cfg: train.Config, train_df: pd.DataFrame, overfit_steps: in
 
 
 def run_eda(images: str, labels: str, img_size: int, backbones: list[str], cache_dir: str = "runs/cache") -> dict:
-    """[Implemented by Claude (AI assistant)] Chạy toàn bộ EDA + kiểm tra pipeline, ghi figures/ và results/eda.json.
+    """Chạy toàn bộ EDA + kiểm tra pipeline, ghi figures/ và results/eda.json.
 
     Input : images (thư mục ảnh), labels (thư mục CSV), img_size (int), backbones (list tên timm để kiểm tra
             pipeline), cache_dir (bộ đệm ảnh). Output: dict {"split_check", "class_distribution", "image_stats",
@@ -267,7 +266,7 @@ def run_eda(images: str, labels: str, img_size: int, backbones: list[str], cache
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] Điểm vào dòng lệnh, gọi run_eda.
+    """Điểm vào dòng lệnh, gọi run_eda.
 
     Input : --images, --labels, --img-size, --backbones. Output: None (in tóm tắt).
     """

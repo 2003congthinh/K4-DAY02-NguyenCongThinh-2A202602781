@@ -1,7 +1,6 @@
 """train.py - vòng huấn luyện cho mọi thí nghiệm (B, T, F).
 
-PSEUDO-CODE: chỉ có khung (cấu hình và quy ước đặt tên file); bạn tự hoàn thiện mọi hàm có
-`raise NotImplementedError` và các bước TODO trong `run()`. Dùng MỘT hàm `run(cfg)` cho mọi cấu hình
+Đã hoàn thiện mọi hàm của bộ khung `starter/` và các bước trong `run()`. Dùng MỘT hàm `run(cfg)` cho mọi cấu hình
 (RUBRIC mục H): đổi thí nghiệm chỉ bằng cách đổi `Config`.
 
 Chạy một thí nghiệm từ dòng lệnh:
@@ -19,7 +18,7 @@ from pathlib import Path
 #     from eval import save_predictions, compute_metrics
 # Log theo epoch (history.csv) và config.json bạn tự ghi bằng pandas/json.
 
-# [Implemented by Claude (AI assistant)] imports for the implementation below.
+# imports for the implementation below.
 import argparse
 import copy
 import dataclasses
@@ -38,7 +37,7 @@ import torch.nn as nn
 
 
 def _find_repo_root() -> Path:
-    """[Implemented by Claude (AI assistant)] Tìm thư mục chứa eval.py (repo gốc) bằng cách đi ngược lên.
+    """Tìm thư mục chứa eval.py (repo gốc) bằng cách đi ngược lên.
 
     Input : không. Output: Path thư mục chứa eval.py. Dùng để `from eval import ...` mà không sửa eval.py.
     """
@@ -56,7 +55,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# [Implemented by Claude (AI assistant)] Vị trí dữ liệu, tính từ thư mục gốc repo (nơi có eval.py) nên đúng với
+# Vị trí dữ liệu, tính từ thư mục gốc repo (nơi có eval.py) nên đúng với
 # mọi thư mục làm việc: ảnh ở <repo>/images, CSV của Alex Olsen ở <repo>/data/labels.
 # Ghi đè bằng biến môi trường LAB_IMAGES / LAB_LABELS nếu để dữ liệu ở chỗ khác.
 IMAGES_DIR = os.environ.get("LAB_IMAGES", str(REPO_ROOT / "images"))
@@ -101,13 +100,13 @@ class Config:
     amp: bool = True
     num_workers: int = 2
     # --- đường dẫn ---
-    images_dir: str = IMAGES_DIR      # [Claude] <repo>/images (xem IMAGES_DIR ở đầu file)
-    labels_dir: str = LABELS_DIR      # [Claude] <repo>/data/labels
+    images_dir: str = IMAGES_DIR      # <repo>/images (xem IMAGES_DIR ở đầu file)
+    labels_dir: str = LABELS_DIR      # <repo>/data/labels
     out_dir: str = "runs"             # config.json, history.csv, checkpoint, logit của từng lần chạy
     pred_dir: str = "predictions"     # file dự đoán đúng định dạng eval.py (nộp cùng bài)
     # --- chỉ bật ở Bước 4 (chung kết): ghi predictions trên TEST. Mặc định TẮT (quy tắc S4). ---
     save_test_predictions: bool = False
-    # --- [Implemented by Claude (AI assistant)] các trường thêm vào (README cho phép thêm tham số) ---
+    # --- các trường thêm vào (README cho phép thêm tham số) ---
     desc: str = ""                    # mô tả ngắn cho tên ảnh curves/<exp_id>_<desc>.png (rỗng = tên backbone)
     optimizer: str = "adamw"          # adamw | sgd  (trục E)
     momentum: float = 0.9             # chỉ dùng cho sgd
@@ -139,12 +138,6 @@ def set_seed(seed: int) -> None:
     TODO: random, numpy, torch (CPU và CUDA); cân nhắc cudnn.deterministic/benchmark và
     seed cho worker của DataLoader. Ghi lại trong báo cáo mức độ tái lập bạn đạt được.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : seed (int). Output: None.
-    # Cách làm: cố định random, numpy, torch CPU và mọi GPU; PYTHONHASHSEED. Seed của worker DataLoader
-    #   được suy ra từ generator của loader (dataset.make_loader nhận cùng seed + dataset.seed_worker).
-    #   cudnn.benchmark=False, deterministic=True để tái lập tốt hơn trên GPU (chậm hơn một chút).
-    #   Trên CPU (máy dùng cho bài nộp này) cùng seed cho kết quả lặp lại gần như y hệt.
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -156,11 +149,6 @@ def set_seed(seed: int) -> None:
 
 def build_optimizer(model, cfg: Config):
     """AdamW với 3 nhóm tham số (xem model.param_groups). TODO."""
-    # [Implemented by Claude (AI assistant)]
-    # Input : model, cfg (Config: optimizer, lr_backbone, lr_head, weight_decay, momentum)
-    # Output: torch.optim.Optimizer (AdamW mặc định, hoặc SGD Nesterov momentum cho trục E)
-    # Cách làm: chia tham số bằng model.param_groups (backbone decay / backbone no-decay / head),
-    #   mỗi nhóm có lr và weight_decay riêng; scheduler sau đó nhân hệ số chung cho mọi nhóm.
     groups = model_mod.param_groups(model, cfg.lr_backbone, cfg.lr_head, cfg.weight_decay)
     if cfg.optimizer == "adamw":
         return torch.optim.AdamW(groups, lr=cfg.lr_backbone)
@@ -175,12 +163,7 @@ def build_scheduler(optimizer, cfg: Config, steps_per_epoch: int):
     Cập nhật theo bước (iteration) hoặc theo epoch đều được; ghi rõ bạn chọn gì.
     Gợi ý kiểm tra: vẽ đường LR theo bước để thấy đúng hình warmup + cosine.
     """
-    # [Implemented by Claude (AI assistant)]  -> cập nhật THEO BƯỚC (mỗi iteration).
-    # Input : optimizer; cfg (epochs, warmup_epochs); steps_per_epoch (int, số batch train mỗi epoch)
-    # Output: torch.optim.lr_scheduler.LambdaLR; hệ số f(step) nhân với lr gốc của TỪNG nhóm
-    #   (nên tỉ lệ LR head/backbone = 10 được giữ suốt quá trình).
-    # Cách làm: warmup tuyến tính f = (step+1)/W trong W = warmup_epochs * steps_per_epoch bước đầu,
-    #   sau đó cosine f = 0.5 * (1 + cos(pi * t)) với t đi từ 0 tới 1 ở bước cuối (LR về 0).
+    #  -> cập nhật THEO BƯỚC (mỗi iteration).
     total = max(1, int(cfg.epochs * steps_per_epoch))
     warmup = int(round(cfg.warmup_epochs * steps_per_epoch))
 
@@ -204,10 +187,6 @@ class EMA:
     """
 
     def __init__(self, model, decay: float):
-        # [Implemented by Claude (AI assistant)]
-        # Input : model (nn.Module đang train), decay (float, ví dụ 0.998)
-        # Output: đối tượng EMA; self.module là BẢN SAO RIÊNG của model ở chế độ eval, không gradient
-        #   (đánh giá bằng self.module, không ghi đè model đang train).
         self.decay = float(decay)
         self.num_updates = 0
         self.module = copy.deepcopy(model).eval()
@@ -215,12 +194,6 @@ class EMA:
             p.requires_grad_(False)
 
     def update(self, model) -> None:
-        # [Implemented by Claude (AI assistant)]
-        # Input : model (cùng kiến trúc với self.module), gọi SAU mỗi optimizer.step(). Output: None.
-        # Cách làm: d = min(decay, (1 + n) / (10 + n)) (warmup của decay như timm, để EMA không bị kéo
-        #   bởi trọng số khởi tạo khi số bước ít) rồi W_ema <- d * W_ema + (1 - d) * W cho mọi tham số
-        #   VÀ mọi buffer số thực (running_mean/var của BN cũng được trung bình động như timm ModelEmaV2);
-        #   buffer số nguyên (num_batches_tracked) được chép thẳng.
         self.num_updates += 1
         d = min(self.decay, (1 + self.num_updates) / (10 + self.num_updates))
         with torch.no_grad():
@@ -233,12 +206,11 @@ class EMA:
                     v.copy_(src)
 
     def state_dict(self) -> dict:
-        # [Implemented by Claude (AI assistant)] Output: state_dict của mô hình EMA (để lưu checkpoint).
         return self.module.state_dict()
 
 
 def set_train_mode(model) -> None:
-    """[Implemented by Claude (AI assistant)] model.train() nhưng giữ backbone đóng băng ở eval.
+    """model.train() nhưng giữ backbone đóng băng ở eval.
 
     Input : model (có thể có cờ model.frozen_backbone do model.freeze_backbone đặt). Output: None.
     Cách làm: bật train cho toàn bộ; nếu frozen_backbone thì đặt lại eval() cho mọi module con KHÔNG thuộc
@@ -263,15 +235,6 @@ def train_one_epoch(model, loader, criterion, optimizer, scheduler, scaler, cfg:
       - AMP (autocast + GradScaler), clip gradient nếu cần, optimizer.step(), scheduler.step()
       - nếu có EMA: ema.update(model)
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model, loader (train DataLoader -> (x, y, filenames)), criterion, optimizer,
-    #         scheduler (LambdaLR theo bước), scaler (torch.amp.GradScaler), cfg, device, ema (EMA | None)
-    # Output: dict {"train_loss": float (trung bình theo mẫu), "train_acc": float (NaN khi Mixup/CutMix vì
-    #         không có nghĩa), "lr": float (LR nhóm đầu ở cuối epoch), "lr_steps": list[float] (LR nhóm đầu
-    #         từng bước, để vẽ warmup + cosine), "time_s": float, "n_steps": int}
-    # Cách làm: set_train_mode (giữ BN backbone đóng băng ở eval) -> mỗi batch: (mix_batch nếu cfg.mix) ->
-    #   autocast (chỉ bật trên CUDA khi cfg.amp) -> loss (mixed_loss khi trộn) -> scaler.scale(loss).backward()
-    #   -> clip gradient (tuỳ chọn) -> scaler.step -> scaler.update -> scheduler.step() -> ema.update.
     set_train_mode(model)
     use_amp = cfg.amp and device.type == "cuda"
     t0 = time.perf_counter()
@@ -325,12 +288,6 @@ def evaluate(model, loader, criterion, device, channels_last: bool = False):
 
     TODO: model.eval(), torch.inference_mode(), gom kết quả. Softmax khi cần xác suất.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model, loader (val/test DataLoader, shuffle=False), criterion (loss dùng để báo cáo val loss;
-    #         train.run truyền CE thường để đường val loss so sánh được giữa các loss), device,
-    #         channels_last (bool, tham số thêm) - đổi bố trí bộ nhớ đầu vào giống lúc train
-    # Output: (filenames list[str] [N], y_true ndarray int64 [N], logits ndarray float32 [N, 9], loss float)
-    # Cách làm: model.eval() + torch.inference_mode(); duyệt loader theo đúng thứ tự, gom logit trên CPU.
     model.eval()
     names, ys, outs = [], [], []
     tot_loss, tot_n = 0.0, 0
@@ -350,7 +307,7 @@ def evaluate(model, loader, criterion, device, channels_last: bool = False):
 
 
 def softmax_np(logits: np.ndarray) -> np.ndarray:
-    """[Implemented by Claude (AI assistant)] Softmax ổn định số học trên numpy.
+    """Softmax ổn định số học trên numpy.
 
     Input : logits ndarray [N, K]. Output: ndarray float64 [N, K], mỗi dòng cộng bằng 1.
     """
@@ -361,7 +318,7 @@ def softmax_np(logits: np.ndarray) -> np.ndarray:
 
 
 def metrics_from_logits(y_true: np.ndarray, logits: np.ndarray) -> dict:
-    """[Implemented by Claude (AI assistant)] Chỉ số theo ĐÚNG định nghĩa của eval.py.
+    """Chỉ số theo ĐÚNG định nghĩa của eval.py.
 
     Input : y_true [N] int, logits [N, 9]. Output: dict của eval.compute_metrics
       {"n", "top1", "macro_f1", "balanced_acc", "ece", "nll", "precision"[9], "recall"[9], "f1"[9],
@@ -377,13 +334,6 @@ def plot_curves(history: list[dict], path: str | Path, title: str, lr_steps: lis
     TODO: tối thiểu loss train/val và macro-F1 val theo epoch; có tiêu đề, nhãn trục, chú thích;
     khuyến khích thêm LR theo bước. Lưu bằng matplotlib với dpi đủ nét để đọc số.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : history - list[dict], mỗi phần tử là một epoch: {"epoch", "train_loss", "train_acc", "val_loss",
-    #           "val_macro_f1", "val_top1", (tuỳ chọn) "val_macro_f1_raw", ...}
-    #         path (đường dẫn .png), title (str, ví dụ "B01 - resnet18"),
-    #         lr_steps (list[float] | None, tham số thêm) - LR nhóm backbone theo từng bước
-    # Output: None; ghi file .png 3 ô: (1) loss train/val, (2) macro-F1 val, top-1 val, acc train,
-    #         (3) LR theo bước (warmup + cosine). Epoch tốt nhất (macro-F1 val) được đánh dấu.
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -424,14 +374,14 @@ def plot_curves(history: list[dict], path: str | Path, title: str, lr_steps: lis
 
 
 def resolve_device(name: str) -> torch.device:
-    """[Implemented by Claude (AI assistant)] "auto" -> cuda nếu có, ngược lại cpu. Output: torch.device."""
+    """"auto" -> cuda nếu có, ngược lại cpu. Output: torch.device."""
     if name == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.device(name)
 
 
 def env_info(device: torch.device) -> dict:
-    """[Implemented by Claude (AI assistant)] Thông tin môi trường để ghi vào config.json (tái lập).
+    """Thông tin môi trường để ghi vào config.json (tái lập).
 
     Output: dict {"python", "torch", "torchvision", "timm", "device", "device_name", "num_threads", "platform"}.
     """
@@ -448,7 +398,7 @@ def env_info(device: torch.device) -> dict:
 
 
 def curve_path(cfg: Config) -> Path:
-    """[Implemented by Claude (AI assistant)] curves/<exp_id>_<desc>.png (seed 0) hoặc ..._seed<k>.png.
+    """curves/<exp_id>_<desc>.png (seed 0) hoặc ..._seed<k>.png.
 
     Input : cfg. Output: Path ảnh biểu đồ; tên bắt đầu bằng exp_id để khớp results.xlsx (GUIDE 6.1).
     """
@@ -474,22 +424,6 @@ def run(cfg: Config) -> dict:
          (best_epoch, macro-F1 val, thời gian train mỗi epoch, số tham số, GMAC)
     Quy tắc: KHÔNG dùng test để chọn checkpoint hay bất kỳ quyết định nào (README.md, S4).
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : cfg (Config) - toàn bộ cấu hình một lần chạy.
-    # Output: dict tóm tắt (cũng ghi ra runs/<exp_id>/seed<k>/summary.json):
-    #   {"exp_id", "seed", "backbone", "weight_tag", "init", "img_size", "epochs", "best_epoch",
-    #    "val_macro_f1", "val_top1", "val_balanced_acc", "val_ece", "val_nll",
-    #    "val_f1_per_class": [9 số], "val_recall_per_class": [9 số], "params_m", "gmacs",
-    #    "train_time_per_epoch_s", "val_time_per_epoch_s", "total_time_s", "device", "curve", "config": {...}}
-    # File ghi ra trong run_dir: config.json, split_check.json, history.csv, best.pt (trọng số tốt nhất;
-    #   với EMA là trọng số EMA + bản raw), val_logits.npy, val_pred.csv, summary.json (+ test_logits.npy khi
-    #   save_test_predictions). Ảnh curves/<exp_id>_<desc>.png.
-    # Luồng: set_seed -> load_split + check_split -> loaders -> build_model/criterion/optimizer/scheduler/EMA
-    #   -> (resume từ last.pt nếu có) -> mỗi epoch: train_one_epoch -> evaluate(val) -> chọn best theo macro-F1 val
-    #   (bằng nhau giữ epoch sớm hơn: so sánh ">" chặt) -> nạp best -> lưu logit/predictions val
-    #   -> (chỉ khi save_test_predictions) đánh giá test ĐÚNG MỘT LẦN -> history.csv, biểu đồ, summary.
-    #   Nếu lần chạy với cùng cấu hình đã xong (summary.json tồn tại) thì không train lại; khi đó nếu được yêu
-    #   cầu test mà chưa có, chỉ nạp best.pt và chạy test một lần (dùng ở Bước 4 cho mốc T00 seed 0).
     t_start = time.perf_counter()
     rd = run_dir(cfg)
     rd.mkdir(parents=True, exist_ok=True)
@@ -644,7 +578,7 @@ _VOLATILE_KEYS = ("save_test_predictions", "num_workers", "resume", "num_threads
 
 
 def _cfg_key(d: dict) -> dict:
-    """[Implemented by Claude (AI assistant)] Bỏ các trường "không ảnh hưởng kết quả" khỏi dict cấu hình.
+    """Bỏ các trường "không ảnh hưởng kết quả" khỏi dict cấu hình.
 
     Input : dict cấu hình (dataclasses.asdict). Output: dict đã lọc để so sánh hai lần chạy có cùng thiết lập.
     """
@@ -652,7 +586,7 @@ def _cfg_key(d: dict) -> dict:
 
 
 def _make_split_loader(cfg: Config, df: pd.DataFrame, train: bool, img_size: int | None = None):
-    """[Implemented by Claude (AI assistant)] DataLoader cho một tập theo cfg.
+    """DataLoader cho một tập theo cfg.
 
     Input : cfg; df (DataFrame của tập); train (bool); img_size (int | None) - ghi đè cfg.img_size
             (dùng cho dò độ phân giải kiểm tra). Output: DataLoader (xem dataset.make_loader).
@@ -668,7 +602,7 @@ def _make_split_loader(cfg: Config, df: pd.DataFrame, train: bool, img_size: int
 
 
 def load_trained_model(cfg: Config, device: torch.device | str = "cpu", which: str = "best"):
-    """[Implemented by Claude (AI assistant)] Dựng lại model và nạp trọng số từ runs/<exp_id>/seed<k>/best.pt.
+    """Dựng lại model và nạp trọng số từ runs/<exp_id>/seed<k>/best.pt.
 
     Input : cfg (Config của lần chạy), device, which ("best" = trọng số dùng để chọn checkpoint, tức EMA nếu
             có EMA; "raw" = trọng số không EMA ở cùng epoch, chỉ có khi train với EMA)
@@ -689,7 +623,7 @@ def load_trained_model(cfg: Config, device: torch.device | str = "cpu", which: s
 
 
 def _predict_and_save(cfg: Config, split: str, device) -> tuple[list[str], np.ndarray, np.ndarray]:
-    """[Implemented by Claude (AI assistant)] Dự đoán 1-view (I00) một tập bằng best.pt và lưu kết quả.
+    """Dự đoán 1-view (I00) một tập bằng best.pt và lưu kết quả.
 
     Input : cfg; split ("val" | "test"); device.
     Output: (filenames list[str], y_true ndarray [N], logits ndarray [N, 9]).
@@ -718,12 +652,6 @@ def parse_overrides(pairs: list[str]) -> dict:
 
     TODO: tách key/value, báo lỗi rõ nếu key không có trong Config, ép int/float/bool/None theo kiểu field.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : pairs (list[str]) dạng "KEY=VALUE"
-    # Output: dict {tên field: giá trị đã ép kiểu}, ví dụ {"seed": 1, "loss": "focal", "ema_decay": None}
-    # Cách làm: đọc kiểu khai báo của từng field trong Config (chuỗi như "int", "float | None", "str | None",
-    #   "bool" vì file dùng `from __future__ import annotations`); "none"/"null" -> None nếu kiểu cho phép;
-    #   bool nhận true/false/1/0/yes/no; sau đó int/float/str. Key lạ -> ValueError liệt kê các key hợp lệ.
     types = {f.name: str(f.type) for f in dataclasses.fields(Config)}
     out = {}
     for pair in pairs:
@@ -755,8 +683,6 @@ def main() -> None:
 
     TODO: argparse nhận `--set KEY=VALUE ...`, dựng Config qua parse_overrides, gọi run(cfg), in kết quả.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : dòng lệnh `--set KEY=VALUE ...`. Output: None; in JSON tóm tắt (bỏ khối config cho gọn).
     ap = argparse.ArgumentParser(description="Huấn luyện một cấu hình Lab Day 2")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE", help="ghi đè field của Config")
     args = ap.parse_args()

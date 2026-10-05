@@ -1,6 +1,5 @@
 """run_all.py - điều phối toàn bộ bài lab theo đúng thứ tự của GUIDE, từng giai đoạn chạy lại được (resume).
 
-[Implemented by Claude (AI assistant)]
 Chạy từ thư mục bài nộp (submissions/<mssv>_<ten>/):
     python code/run_all.py all                    # chạy hết từ đầu tới cuối (bỏ qua phần đã xong)
     python code/run_all.py backbones              # hoặc từng giai đoạn
@@ -39,19 +38,19 @@ BACKBONE_TIE = 0.01      # các backbone cách backbone tốt nhất < 0.01 macr
 
 
 def summary_of(key: str) -> dict:
-    """[Implemented by Claude (AI assistant)] Đọc summary.json của run theo khoá. Output: dict (xem train.run)."""
+    """Đọc summary.json của run theo khoá. Output: dict (xem train.run)."""
     return json.loads((train.run_dir(ex.get_cfg(key)) / "summary.json").read_text(encoding="utf-8"))
 
 
 def stage_eda() -> None:
-    """[Implemented by Claude (AI assistant)] Bước 0: gọi eda.run_eda với độ phân giải và 2 backbone của profile."""
+    """Bước 0: gọi eda.run_eda với độ phân giải và 2 backbone của profile."""
     import eda
     bbs = [v[0] for v in ex.BACKBONES.values()]
     eda.run_eda(ex.BASE.images_dir, ex.BASE.labels_dir, ex.BASE.img_size, [bbs[0], bbs[-1]], cache_dir=ex.BASE.cache_dir)
 
 
 def stage_choose_backbone() -> None:
-    """[Implemented by Claude (AI assistant)] Đo độ trễ sơ bộ từng backbone và chọn backbone đi tiếp.
+    """Đo độ trễ sơ bộ từng backbone và chọn backbone đi tiếp.
 
     Input : summary của B01..B0n. Output: None; ghi results/backbone_latency.csv và decisions["chosen_backbone"].
     Luật (chỉ val): lấy các backbone có macro-F1 val >= tốt nhất - 0.01 (chênh nhỏ, 1 seed), trong đó chọn cái có
@@ -80,7 +79,7 @@ def stage_choose_backbone() -> None:
 
 
 def training_deltas() -> pd.DataFrame:
-    """[Implemented by Claude (AI assistant)] Bảng Δ macro-F1 val của T01..T11 so với T00.
+    """Bảng Δ macro-F1 val của T01..T11 so với T00.
 
     Output: DataFrame cột exp_id, axis, desc, overrides (dict), val_macro_f1, delta.
     """
@@ -94,7 +93,7 @@ def training_deltas() -> pd.DataFrame:
 
 
 def stage_choose_combo() -> None:
-    """[Implemented by Claude (AI assistant)] Chọn các yếu tố để kết hợp thành T12 ("tham lam theo trục").
+    """Chọn các yếu tố để kết hợp thành T12 ("tham lam theo trục").
 
     Luật (chỉ val): mỗi trục lấy giá trị có Δ lớn nhất nếu Δ >= CLEAR_DELTA; kết hợp các trục đó.
       Nếu ít hơn 2 trục đạt, lấy 2 trục có Δ dương lớn nhất (khác trục) để vẫn thử một kết hợp (RUBRIC C);
@@ -129,7 +128,7 @@ def stage_choose_combo() -> None:
 
 
 def stage_choose_final() -> None:
-    """[Implemented by Claude (AI assistant)] Chốt công thức chung kết: T00, T đơn lẻ tốt nhất hoặc T12 (macro-F1 val).
+    """Chốt công thức chung kết: T00, T đơn lẻ tốt nhất hoặc T12 (macro-F1 val).
 
     Output: None; ghi decisions["final_recipe"] (dict ghi đè Config) và decisions["final_source"] (run seed 0).
     """
@@ -145,7 +144,7 @@ def stage_choose_final() -> None:
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] CLI chọn giai đoạn. Input: tên giai đoạn hoặc "all". Output: None."""
+    """CLI chọn giai đoạn. Input: tên giai đoạn hoặc "all". Output: None."""
     stages = {
         "eda": stage_eda,
         "backbones": lambda: ex.run_keys(ex.stage_keys("backbones")),

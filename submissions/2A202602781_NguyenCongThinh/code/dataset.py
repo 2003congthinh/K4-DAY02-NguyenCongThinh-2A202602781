@@ -1,6 +1,6 @@
 """dataset.py - đọc DeepWeeds, kiểm tra chia dữ liệu, transform, DataLoader.
 
-PSEUDO-CODE: bạn tự hoàn thiện mọi hàm có `raise NotImplementedError`.
+Đã hoàn thiện mọi hàm của bộ khung `starter/`.
 Quy tắc chia dữ liệu bắt buộc (S1-S6) nằm ở README.md, mục 2.1. Đọc trước khi viết.
 
 Giao diện bạn phải giữ (để notebook, train.py và eval.py ghép được với nhau):
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
-# [Implemented by Claude (AI assistant)] extra imports needed by the implementation below.
+# extra imports needed by the implementation below.
 import os
 import random
 from concurrent.futures import ThreadPoolExecutor
@@ -36,14 +36,14 @@ CLASS_NAMES = [
 IMAGENET_MEAN = (0.485, 0.456, 0.406)  # đổi nếu trọng số timm bạn dùng yêu cầu mean/std khác
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
-# [Implemented by Claude (AI assistant)] constants used by check_split.
+# constants used by check_split.
 EXPECTED_TOTAL = 17509                     # số ảnh của DeepWeeds (Table 1 của bài báo)
 EXPECTED_RATIO = {"train": 0.6, "val": 0.2, "test": 0.2}
 RATIO_TOLERANCE = 0.01                     # lệch hơn ~1 điểm phần trăm thì cảnh báo (README 2.1)
 
 
 def eval_resize(img_size: int) -> int:
-    """[Implemented by Claude (AI assistant)] Kích thước resize trước khi center-crop lúc đánh giá.
+    """Kích thước resize trước khi center-crop lúc đánh giá.
 
     Input : img_size (int) - kích thước crop cuối cùng (ví dụ 224 hoặc 128).
     Output: int - cạnh ảnh sau resize, giữ tỉ lệ 256/224 của công thức nền
@@ -62,13 +62,6 @@ def load_split(labels_dir: str | Path, fold: int = 0):
       - đọc ba file CSV bằng pandas
       - trả về (train_df, val_df, test_df)
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : labels_dir (str | Path) - thư mục chứa train/val/test_subset{fold}.csv
-    #         fold (int)              - số fold (bài lab bắt buộc fold 0, quy tắc S1)
-    # Output: tuple (train_df, val_df, test_df); mỗi phần tử là pandas.DataFrame có ít nhất
-    #         cột `Filename` (str) và `Label` (int 0..8), đúng thứ tự dòng của file gốc.
-    # Cách làm: đọc nguyên văn 3 file CSV (không lọc, không chia lại), chỉ kiểm tra có đủ cột
-    #         và ép `Label` về int. Mọi hàm khác (check_split, make_loader, train.run) dùng kết quả này.
     labels_dir = Path(labels_dir)
     dfs = []
     for split in ("train", "val", "test"):
@@ -92,22 +85,6 @@ def check_split(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFr
       4. mọi Filename đều tồn tại trong `images_dir`
     Trả về dict, ví dụ {"n": {...}, "per_class": {...}, "overlap": {...}} để dán vào báo cáo.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : train_df, val_df, test_df (DataFrame từ load_split); images_dir (str | Path) thư mục ảnh .jpg
-    # Output: dict cấu trúc như sau (mọi số là int/float thuần để ghi được ra JSON):
-    #   {
-    #     "n":         {"train": 10501, "val": 3501, "test": 3507, "total": 17509},
-    #     "ratio":     {"train": 0.5998, "val": 0.2000, "test": 0.2003},
-    #     "per_class": {"train": {"Chinee Apple": 675, ...}, "val": {...}, "test": {...},
-    #                   "all": {"Chinee Apple": 1125, ...}},
-    #     "overlap":   {"train&val": 0, "train&test": 0, "val&test": 0},
-    #     "duplicates_within": {"train": 0, "val": 0, "test": 0},
-    #     "union": 17509, "missing_files": 0, "ratio_warning": False
-    #   }
-    # Cách làm: đếm số ảnh từng tập/lớp, tính giao theo tên file giữa từng cặp tập, hợp ba tập,
-    #   và so tên file với danh sách file thật trong images_dir. Vi phạm (giao khác rỗng, hợp khác
-    #   17.509, thiếu file, trùng tên trong một tập) -> AssertionError để dừng ngay. Lệch tỉ lệ
-    #   60/20/20 quá 1 điểm % chỉ in cảnh báo (README yêu cầu báo giảng viên, không tự sửa).
     splits = {"train": train_df, "val": val_df, "test": test_df}
     names = {k: set(df["Filename"]) for k, df in splits.items()}
     total = sum(len(df) for df in splits.values())
@@ -164,21 +141,6 @@ def build_transforms(train: bool, img_size: int = 224, aug: str = "basic"):
 
     TODO: dùng torchvision.transforms (hoặc v2). Lưu ý: lật dọc có hợp lệ với ảnh cỏ dại không?
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : train (bool) - True: transform huấn luyện (ngẫu nhiên); False: transform đánh giá (tất định)
-    #         img_size (int) - cạnh ảnh đưa vào model
-    #         aug (str) - mức augmentation khi train:
-    #             "basic"   : RandomResizedCrop + lật ngang                     (công thức nền T00)
-    #             "flipv"   : basic + lật dọc (ảnh chụp từ trên xuống, lật dọc vẫn là cùng loài cây)
-    #             "color"   : basic + ColorJitter(0.3, 0.3, 0.3, 0.05)
-    #             "trivial" : basic + TrivialAugmentWide
-    #             "randaug" : basic + RandAugment(num_ops=2, magnitude=9)
-    # Output: torchvision.transforms.v2.Compose nhận ảnh PIL HOẶC tensor uint8 (3, H, W) và trả về
-    #         tensor float32 (3, img_size, img_size) đã chuẩn hoá theo mean/std ImageNet.
-    # Cách làm: v2.ToImage() đưa mọi đầu vào về tv_tensors.Image -> các phép hình học/màu trên uint8
-    #   -> ToDtype(float32, scale=True) -> Normalize. Đánh giá: Resize(eval_resize(img_size)) rồi
-    #   CenterCrop(img_size) (với 224 nghĩa là crop 224 giữa ảnh gốc 256). Không có phép ngẫu nhiên nào.
-    #   Mixup/CutMix không nằm ở đây (losses.mix_batch làm theo batch).
     finish = [v2.ToDtype(torch.float32, scale=True), v2.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
     if not train:
         return v2.Compose([v2.ToImage(), v2.Resize(eval_resize(img_size), antialias=True),
@@ -198,7 +160,7 @@ def build_transforms(train: bool, img_size: int = 224, aug: str = "basic"):
 
 
 def preload_images(images_dir: str | Path, size: int, cache_dir: str | Path) -> tuple[np.ndarray, dict]:
-    """[Implemented by Claude (AI assistant)] Giải mã MỘT lần toàn bộ ảnh và lưu bộ nhớ đệm .npy.
+    """Giải mã MỘT lần toàn bộ ảnh và lưu bộ nhớ đệm .npy.
 
     Input : images_dir (str | Path) - thư mục 17.509 ảnh .jpg 256x256
             size (int)              - cạnh ảnh lưu trong bộ đệm (ảnh vuông size x size)
@@ -241,7 +203,7 @@ def preload_images(images_dir: str | Path, size: int, cache_dir: str | Path) -> 
 
 
 def seed_worker(worker_id: int) -> None:
-    """[Implemented by Claude (AI assistant)] worker_init_fn cho DataLoader.
+    """worker_init_fn cho DataLoader.
 
     Input : worker_id (int) - do DataLoader truyền vào. Output: None.
     Cách làm: mỗi worker nhận seed torch khác nhau (torch.initial_seed() đã được DataLoader đặt từ
@@ -267,13 +229,6 @@ class DeepWeedsDataset(Dataset):  # TODO: kế thừa torch.utils.data.Dataset
 
     def __init__(self, df: pd.DataFrame, images_dir: str | Path, transform=None,
                  preload_size: int | None = None, cache_dir: str | Path | None = None):
-        # [Implemented by Claude (AI assistant)]
-        # Input : df (DataFrame có Filename, Label), images_dir (thư mục ảnh), transform (callable hoặc None),
-        #         preload_size (int | None) - nếu có: đọc ảnh từ bộ đệm uint8 size x size (preload_images)
-        #         thay vì giải mã JPEG mỗi lần; cache_dir - nơi đặt bộ đệm (mặc định runs/cache, thư mục bị .gitignore).
-        # Output: đối tượng Dataset; giữ nguyên thứ tự dòng của df (quan trọng để ghép logit với tên file).
-        # Cách làm: lưu danh sách tên file + nhãn; bộ đệm memmap được mở "lười" (lần đầu __getitem__)
-        #   để khi DataLoader nhân bản dataset sang worker không phải pickle cả mảng ảnh.
         self.filenames = df["Filename"].astype(str).tolist()
         self.labels = df["Label"].astype(int).to_numpy()
         self.images_dir = Path(images_dir)
@@ -287,16 +242,9 @@ class DeepWeedsDataset(Dataset):  # TODO: kế thừa torch.utils.data.Dataset
             self._rows = np.array([index[f] for f in self.filenames], dtype=np.int64)
 
     def __len__(self) -> int:
-        # [Implemented by Claude (AI assistant)] Output: số ảnh (int) = số dòng của df.
         return len(self.filenames)
 
     def __getitem__(self, i: int):
-        # [Implemented by Claude (AI assistant)]
-        # Input : i (int) - chỉ số ảnh trong df
-        # Output: (image, label, filename) với image = tensor float (3, img_size, img_size) sau transform
-        #         (hoặc PIL / tensor uint8 nếu transform=None), label = int 0..8, filename = str.
-        # Cách làm: lấy ảnh từ bộ đệm memmap (tensor uint8 3xSxS) nếu preload, ngược lại mở bằng PIL và
-        #   chuyển RGB; rồi áp transform.
         name = self.filenames[i]
         if self.preload_size:
             if self._array is None:
@@ -324,16 +272,6 @@ def make_loader(df: pd.DataFrame, images_dir: str | Path, transform, batch_size:
       - drop_last=True khi train nếu batch cuối quá nhỏ làm BatchNorm không ổn định
       - pin_memory=True, num_workers hợp lý; seed cho worker (worker_init_fn) để tái lập
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : df, images_dir, transform - như DeepWeedsDataset; batch_size (int);
-    #         train (bool) - True: xáo trộn + drop_last; False: giữ đúng thứ tự df, không bỏ batch nào
-    #         sampler (None | "balanced") - "balanced": WeightedRandomSampler trọng số 1/n_lớp (trục D)
-    #         num_workers (int); preload_size, cache_dir - chuyển cho DeepWeedsDataset;
-    #         seed (int) - seed của generator (thứ tự batch + seed worker); drop_last (bool | None) - None = train
-    # Output: torch.utils.data.DataLoader trả về batch (images[B,3,H,W], labels[B] (tensor int64), filenames (list[str]))
-    # Cách làm: dựng dataset; train -> shuffle bằng generator đã seed (hoặc sampler cân bằng, có hoàn lại,
-    #   số mẫu mỗi epoch = len(df)); eval -> shuffle=False. pin_memory chỉ bật khi có CUDA;
-    #   persistent_workers để không tạo lại tiến trình mỗi epoch (trên Windows tạo worker rất chậm).
     ds = DeepWeedsDataset(df, images_dir, transform, preload_size=preload_size, cache_dir=cache_dir)
     g = torch.Generator()
     g.manual_seed(seed)

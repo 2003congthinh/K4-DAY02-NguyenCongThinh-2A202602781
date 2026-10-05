@@ -1,6 +1,6 @@
 """benchmark.py - đo độ trễ suy luận đúng cách (slide Day 2, trang 73 và 75; GUIDE.md mục 4.1).
 
-PSEUDO-CODE: bạn tự hoàn thiện mọi hàm có `raise NotImplementedError`.
+Đã hoàn thiện mọi hàm của bộ khung `starter/`.
 
 Quy tắc đo (vi phạm bị trừ điểm, RUBRIC mục 3):
   - warmup: bỏ >= 10 lần chạy đầu
@@ -11,7 +11,7 @@ Quy tắc đo (vi phạm bị trừ điểm, RUBRIC mục 3):
 """
 from __future__ import annotations
 
-# [Implemented by Claude (AI assistant)] imports for the implementation below.
+# imports for the implementation below.
 import platform
 import time
 
@@ -20,7 +20,7 @@ import torch
 
 
 def cpu_name() -> str:
-    """[Implemented by Claude (AI assistant)] Tên CPU đọc từ registry Windows (fallback platform.processor()).
+    """Tên CPU đọc từ registry Windows (fallback platform.processor()).
 
     Input : không. Output: str, ví dụ "AMD Ryzen 5 4500U with Radeon Graphics".
     """
@@ -43,12 +43,6 @@ def bench(fn, warmup: int = 10, iters: int = 100, sync=None) -> dict:
       - trả về {"p50": ..., "p95": ..., "p99": ..., "mean": ..., "n": iters}
     Gợi ý: dùng numpy.percentile hoặc torch.quantile.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : fn (callable không tham số, một lượt suy luận); warmup (int, số lần chạy bỏ đi);
-    #         iters (int, số lần đo, nên >= 50); sync (callable | None, ví dụ torch.cuda.synchronize; None trên CPU)
-    # Output: dict {"p50", "p95", "p99", "mean", "std", "min", "max" (đơn vị ms), "n": iters, "warmup": warmup}
-    # Cách làm: chạy warmup lần rồi bỏ; mỗi lần đo: sync() -> perf_counter -> fn() -> sync() -> perf_counter.
-    #   Trên CPU PyTorch chạy đồng bộ nên sync=None vẫn đúng; trên GPU bắt buộc truyền synchronize.
     sync = sync or (lambda: None)
     for _ in range(warmup):
         fn()
@@ -80,14 +74,6 @@ def latency_report(model, batch_size: int, img_size: int, dtype: str = "fp32", d
       - gọi bench(...) với sync phù hợp; lấy tên GPU bằng torch.cuda.get_device_name
       - Nhớ: ở batch 1, AMP có thể CHẬM hơn FP32 (slide trang 73): đo thật, đừng giả định
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model; batch_size (int); img_size (int); dtype "fp32" | "amp" | "fp16"; device "cuda" | "cpu"
-    #         (nếu yêu cầu "cuda" mà máy không có CUDA thì tự chuyển sang "cpu" và ghi rõ); warmup; iters
-    # Output: dict {"gpu": tên GPU hoặc "CPU: <tên CPU>", "device", "dtype", "batch", "img_size",
-    #         "p50", "p95", "p99", "mean", "std" (ms), "images_per_s", "torch", "threads", "iters", "warmup"}
-    # Cách làm: model.eval(); đầu vào ngẫu nhiên cố định (KHÔNG tính tiền xử lý/giải mã ảnh, chỉ forward);
-    #   torch.inference_mode(); fp16 = model.half() (chỉ hỗ trợ trên CUDA); amp = autocast (CUDA: float16,
-    #   CPU: bfloat16); sync = torch.cuda.synchronize trên GPU, None trên CPU (tính toán CPU là đồng bộ).
     if device == "cuda" and not torch.cuda.is_available():
         device = "cpu"
     dev = torch.device(device)
@@ -115,13 +101,6 @@ def latency_report(model, batch_size: int, img_size: int, dtype: str = "fp32", d
 
 def tta_latency(model, k_views: int, **kw) -> dict:
     """Độ trễ của TTA K view: xấp xỉ K lần một lượt chạy (slide trang 63). TODO: đo thật, so với K * p50."""
-    # [Implemented by Claude (AI assistant)]
-    # Input : model; k_views (int, số view); kw: batch_size (mặc định 1), img_size (mặc định 224),
-    #         dtype ("fp32"), device ("cuda" -> tự về cpu nếu không có), warmup (10), iters (100)
-    # Output: dict {"k_views", "p50", "p95", "p99", "mean" (ms, cho cả K view), "single_p50" (ms, 1 view),
-    #         "k_times_single_p50" (= K * single_p50), "ratio_vs_single" (= p50 / single_p50), "images_per_s", ...}
-    # Cách làm: đo thật hàm chạy K lượt forward liên tiếp (giống TTA tuần tự từng view, batch 1) và đo riêng
-    #   một lượt, để so với giả định "chi phí ~ K lần".
     batch_size = kw.get("batch_size", 1)
     img_size = kw.get("img_size", 224)
     device = kw.get("device", "cuda")

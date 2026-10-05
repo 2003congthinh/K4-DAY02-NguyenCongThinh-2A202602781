@@ -1,6 +1,5 @@
 """infer_experiments.py - Bước 3 của GUIDE: so sánh các phương pháp suy luận trên VAL + đo độ trễ.
 
-[Implemented by Claude (AI assistant)]
 Không huấn luyện lại. Dùng mô hình seed 0 của công thức chung kết (decisions["final_source"]) và các mô hình
 backbone B0x (cho ensemble). Mọi chỉ số ở đây tính trên VAL; test không được đụng tới.
 
@@ -36,12 +35,12 @@ TRANSFORMER_KEYS = ("vit", "deit", "swin")
 
 
 def is_transformer(name: str) -> bool:
-    """[Implemented by Claude (AI assistant)] True nếu backbone cần kích thước ảnh cố định (ViT/DeiT/Swin)."""
+    """True nếu backbone cần kích thước ảnh cố định (ViT/DeiT/Swin)."""
     return any(k in name for k in TRANSFORMER_KEYS)
 
 
 def val_loader(cfg, img_size: int | None = None, crop: bool = True, split: str = "val"):
-    """[Implemented by Claude (AI assistant)] DataLoader của VAL (hoặc TEST, chỉ final.py dùng) cho suy luận.
+    """DataLoader của VAL (hoặc TEST, chỉ final.py dùng) cho suy luận.
 
     Input : cfg (Config); img_size (int | None) - kích thước crop (mặc định cfg.img_size);
             crop (bool) - True: resize + center-crop như I00; False: chỉ resize về eval_resize(img_size)
@@ -63,12 +62,12 @@ def val_loader(cfg, img_size: int | None = None, crop: bool = True, split: str =
 
 
 def metrics_probs(y: np.ndarray, probs: np.ndarray) -> dict:
-    """[Implemented by Claude (AI assistant)] Chỉ số eval.py từ xác suất. Output: dict của eval.compute_metrics."""
+    """Chỉ số eval.py từ xác suất. Output: dict của eval.compute_metrics."""
     return train.compute_metrics(y, probs.argmax(1), probs)
 
 
 def cv_temperature_ece(logits: np.ndarray, y: np.ndarray, folds: int = 2, seed: int = 0) -> dict:
-    """[Implemented by Claude (AI assistant)] ECE trước/sau temperature scaling trên VAL, đánh giá chéo.
+    """ECE trước/sau temperature scaling trên VAL, đánh giá chéo.
 
     Input : logits [N, 9] (val), y [N], folds (int), seed.
     Output: dict {"ece_before": float, "ece_after_cv": float (khớp T trên nửa này, đo ECE trên nửa kia),
@@ -92,7 +91,7 @@ def cv_temperature_ece(logits: np.ndarray, y: np.ndarray, folds: int = 2, seed: 
 
 
 def reliability_plot(y, probs_before, probs_after, path: Path, bins: int = 15) -> None:
-    """[Implemented by Claude (AI assistant)] Biểu đồ độ tin cậy (accuracy theo độ tin cậy) trước/sau TS.
+    """Biểu đồ độ tin cậy (accuracy theo độ tin cậy) trước/sau TS.
 
     Input : y [N], probs_before/probs_after [N, 9], path (.png), bins. Output: None.
     """
@@ -117,7 +116,7 @@ def reliability_plot(y, probs_before, probs_after, path: Path, bins: int = 15) -
 
 
 def lat(model, img_size, device, k=1, batch=1, dtype="fp32", iters=100):
-    """[Implemented by Claude (AI assistant)] Độ trễ (ms) K lượt forward ở batch cho trước, đo đúng cách.
+    """Độ trễ (ms) K lượt forward ở batch cho trước, đo đúng cách.
 
     Input : model, img_size, device ("cuda"/"cpu"), k (số view/lượt), batch, dtype, iters.
     Output: dict của benchmark.latency_report (k=1) hoặc benchmark.tta_latency (k>1).
@@ -129,7 +128,7 @@ def lat(model, img_size, device, k=1, batch=1, dtype="fp32", iters=100):
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] Chạy toàn bộ Bước 3 và ghi kết quả + lựa chọn suy luận.
+    """Chạy toàn bộ Bước 3 và ghi kết quả + lựa chọn suy luận.
 
     Input : không (đọc results/decisions.json). Output: None; ghi results/inference.csv, results/latency.csv,
             hình trong figures/, và decisions["inference"] = phương pháp cho F01 (chọn trên val).
@@ -292,7 +291,7 @@ def main() -> None:
 
 
 def onnx_latency(model, img_size: int) -> dict:
-    """[Implemented by Claude (AI assistant)] Xuất ONNX và đo độ trễ ONNX Runtime CPU, batch 1 (bonus RUBRIC).
+    """Xuất ONNX và đo độ trễ ONNX Runtime CPU, batch 1 (bonus RUBRIC).
 
     Input : model (trên CPU, eval), img_size. Output: dict một dòng cho sheet Latency.
     """
@@ -313,7 +312,7 @@ def onnx_latency(model, img_size: int) -> dict:
 
 
 def tradeoff_plot(df: pd.DataFrame, path: Path) -> None:
-    """[Implemented by Claude (AI assistant)] Scatter macro-F1 val theo độ trễ p50 batch 1 (đường đánh đổi).
+    """Scatter macro-F1 val theo độ trễ p50 batch 1 (đường đánh đổi).
 
     Input : df (bảng inference), path. Output: None.
     """

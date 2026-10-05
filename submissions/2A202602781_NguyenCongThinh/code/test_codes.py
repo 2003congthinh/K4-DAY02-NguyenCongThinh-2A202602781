@@ -1,6 +1,5 @@
 """test_codes.py - kiểm tra tự viết cho các phần dễ sai của codes/ (RUBRIC mục H).
 
-[Implemented by Claude (AI assistant)]
 Chạy (từ thư mục codes/):  python -m unittest test_codes -v
 Không cần GPU, không tải trọng số (timm tạo model với pretrained=False).
 

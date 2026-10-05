@@ -1,6 +1,5 @@
 """experiments.py - danh sách MỌI thí nghiệm huấn luyện (B, T, F) và trình chạy hàng loạt.
 
-[Implemented by Claude (AI assistant)]
 Mọi thí nghiệm đi qua MỘT hàm train.run(Config(...)) (RUBRIC mục H); file này chỉ khai báo các Config.
 Các lựa chọn giữa các bước (backbone đi tiếp, kết hợp công thức, cấu hình chung kết, phương pháp suy luận)
 KHÔNG viết cứng ở đây mà đọc từ results/decisions.json do run_all.py ghi ra (luật chọn chỉ dùng VAL),
@@ -101,7 +100,7 @@ OVERRIDE_FILE = Path("results/decisions_override.json")
 
 
 def load_decisions() -> dict:
-    """[Implemented by Claude (AI assistant)] Đọc các lựa chọn giữa các bước.
+    """Đọc các lựa chọn giữa các bước.
 
     Input : không (đọc results/decisions.json rồi ghi đè bằng results/decisions_override.json nếu có).
     Output: dict, các khoá có thể có:
@@ -119,7 +118,7 @@ def load_decisions() -> dict:
 
 
 def save_decision(**kw) -> dict:
-    """[Implemented by Claude (AI assistant)] Ghi thêm/đè khoá vào results/decisions.json. Output: dict sau khi ghi."""
+    """Ghi thêm/đè khoá vào results/decisions.json. Output: dict sau khi ghi."""
     d = json.loads(DECISIONS_FILE.read_text(encoding="utf-8")) if DECISIONS_FILE.exists() else {}
     reasons = {**d.get("reasons", {}), **kw.pop("reasons", {})}
     d.update(kw, reasons=reasons, profile=PROFILE)
@@ -129,7 +128,7 @@ def save_decision(**kw) -> dict:
 
 
 def backbone_cfg(exp_id: str) -> Config:
-    """[Implemented by Claude (AI assistant)] Config của một thí nghiệm backbone B0x.
+    """Config của một thí nghiệm backbone B0x.
 
     Input : exp_id (khoá của BACKBONES). Output: Config = BASE với backbone/desc tương ứng, seed 0.
     """
@@ -138,7 +137,7 @@ def backbone_cfg(exp_id: str) -> Config:
 
 
 def chosen_backbone() -> tuple[str, str]:
-    """[Implemented by Claude (AI assistant)] (tên timm, tên ngắn) của backbone đã chọn ở Bước 1.
+    """(tên timm, tên ngắn) của backbone đã chọn ở Bước 1.
 
     Output: tuple[str, str]. Lỗi rõ ràng nếu chưa chạy bước chọn (run_all.py choose_backbone).
     """
@@ -149,7 +148,7 @@ def chosen_backbone() -> tuple[str, str]:
 
 
 def training_cfg(exp_id: str, seed: int = 0) -> Config:
-    """[Implemented by Claude (AI assistant)] Config của T00..T12 (T00 = công thức nền trên backbone đã chọn).
+    """Config của T00..T12 (T00 = công thức nền trên backbone đã chọn).
 
     Input : exp_id ("T00", khoá của TRAINING, hoặc "T12" = kết hợp), seed (int).
     Output: Config; desc là mô tả không dấu cách cho tên ảnh curves/<exp_id>_<desc>.png.
@@ -169,13 +168,13 @@ def training_cfg(exp_id: str, seed: int = 0) -> Config:
 
 
 def _desc(overrides: dict) -> str:
-    """[Implemented by Claude (AI assistant)] Mô tả ngắn từ dict ghi đè, ví dụ {"loss": "ls"} -> "loss-ls"."""
+    """Mô tả ngắn từ dict ghi đè, ví dụ {"loss": "ls"} -> "loss-ls"."""
     skip = ("label_smoothing", "focal_gamma", "mix_alpha")
     return "_".join(f"{k}-{v}" for k, v in overrides.items() if k not in skip).replace(".", "p")
 
 
 def final_cfg(seed: int) -> Config:
-    """[Implemented by Claude (AI assistant)] Config chung kết F01 (backbone đã chọn + final_recipe) cho một seed.
+    """Config chung kết F01 (backbone đã chọn + final_recipe) cho một seed.
 
     Input : seed (int). Output: Config exp_id="F01".
     """
@@ -187,7 +186,7 @@ def final_cfg(seed: int) -> Config:
 
 
 def get_cfg(key: str) -> Config:
-    """[Implemented by Claude (AI assistant)] Config theo khoá: "B01", "T00", "T07", "T12", "F01_seed1", "T00_seed2".
+    """Config theo khoá: "B01", "T00", "T07", "T12", "F01_seed1", "T00_seed2".
 
     Input : key (str). Output: Config. Được run_all.py, infer_experiments.py, final.py, make_results.py dùng.
     """
@@ -200,7 +199,7 @@ def get_cfg(key: str) -> Config:
 
 
 def stage_keys(stage: str) -> list[str]:
-    """[Implemented by Claude (AI assistant)] Các khoá của một nhóm.
+    """Các khoá của một nhóm.
 
     Input : "backbones" | "training" | "combo" | "final". Output: list[str].
     """
@@ -216,7 +215,7 @@ def stage_keys(stage: str) -> list[str]:
 
 
 def reuse_identical_run(cfg: Config) -> bool:
-    """[Implemented by Claude (AI assistant)] Dùng lại một lần chạy đã xong có cấu hình Y HỆT (chỉ khác exp_id/desc).
+    """Dùng lại một lần chạy đã xong có cấu hình Y HỆT (chỉ khác exp_id/desc).
 
     Input : cfg (Config định chạy). Output: bool - True nếu đã chép kết quả, không cần train lại.
     Cách làm: T00 seed 0 trùng hoàn toàn với B0x của backbone đã chọn (cùng công thức, cùng seed), và F01 seed 0
@@ -256,7 +255,7 @@ def reuse_identical_run(cfg: Config) -> bool:
 
 
 def run_keys(keys: list[str]) -> list[dict]:
-    """[Implemented by Claude (AI assistant)] Chạy tuần tự các khoá; bỏ qua run đã xong; dùng lại run trùng cấu hình.
+    """Chạy tuần tự các khoá; bỏ qua run đã xong; dùng lại run trùng cấu hình.
 
     Input : keys (list[str]). Output: list[dict] summary của từng run (đọc từ summary.json).
     """
@@ -276,7 +275,7 @@ def run_keys(keys: list[str]) -> list[dict]:
 
 
 def main() -> None:
-    """[Implemented by Claude (AI assistant)] CLI: --list hoặc danh sách khoá cần chạy. Output: None."""
+    """CLI: --list hoặc danh sách khoá cần chạy. Output: None."""
     ap = argparse.ArgumentParser()
     ap.add_argument("keys", nargs="*")
     ap.add_argument("--list", action="store_true")

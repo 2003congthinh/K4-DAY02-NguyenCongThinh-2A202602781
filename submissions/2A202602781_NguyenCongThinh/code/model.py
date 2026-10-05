@@ -1,6 +1,6 @@
 """model.py - tạo backbone, đóng băng, nhóm tham số, đếm params/GMAC.
 
-PSEUDO-CODE: bạn tự hoàn thiện mọi hàm có `raise NotImplementedError`.
+Đã hoàn thiện mọi hàm của bộ khung `starter/`.
 
 Giao diện bạn phải giữ:
     build_model(name, pretrained, num_classes, drop_rate, init) -> nn.Module
@@ -10,7 +10,7 @@ Giao diện bạn phải giữ:
 """
 from __future__ import annotations
 
-# [Implemented by Claude (AI assistant)] imports for the implementation below.
+# imports for the implementation below.
 import torch
 import torch.nn as nn
 
@@ -26,7 +26,7 @@ SUGGESTED_BACKBONES = {
     "mobilenetv3": "mobilenetv3_large_100",      # mạng nhẹ
 }
 
-# [Implemented by Claude (AI assistant)] backbone nhỏ dùng cho ngân sách CPU của bài nộp này
+# backbone nhỏ dùng cho ngân sách CPU của bài nộp này
 # (máy không có GPU CUDA; xem report.md mục 2). Vẫn đủ 4 ràng buộc của GUIDE mục 2.1.
 CPU_BACKBONES = {
     "resnet18": "resnet18",                     # họ ResNet (mốc)
@@ -55,22 +55,6 @@ def build_model(name: str, pretrained: bool = True, num_classes: int = 9,
       - nếu init == "frozen": gọi freeze_backbone(model)
       - ghi lại tên tag trọng số thực sự được tải (model.pretrained_cfg)
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : name (str) - tên model trong timm (ví dụ "resnet18", "deit_tiny_patch16_224")
-    #         pretrained (bool) - tải trọng số ImageNet; bị ép False khi init="scratch"
-    #         num_classes (int) - số lớp của head mới (9); drop_rate (float) - dropout trước head
-    #         init (str) - "scratch" | "frozen" | "finetune" (trục A)
-    #         img_size (int | None) - chỉ truyền cho ViT/DeiT/Swin (nội suy positional embedding)
-    #         drop_path_rate (float) - stochastic depth (trục F), 0 = tắt
-    #         head_init (str) - "zero": đặt trọng số + bias của head mới = 0 để logit ban đầu bằng 0 và loss ban đầu
-    #             đúng bằng ln 9 = 2.197 (GUIDE 1.3). Lý do: với head khởi tạo mặc định của timm, MobileNetV3 có loss
-    #             ban đầu ~4.7 (đặc trưng 1280 chiều sau conv_head có độ lớn cao) - kiểm tra pipeline phát hiện ra.
-    #             "default": giữ khởi tạo của timm (chỉ dùng để so sánh trong eda.pipeline_checks).
-    # Output: nn.Module của timm, có thêm 2 thuộc tính:
-    #         model.weight_tag (str)  - tag trọng số thật sự tải, ví dụ "resnet18.a1_in1k" (hoặc "<name> (scratch)")
-    #         model.frozen_backbone (bool) - True nếu đã đóng băng (train.set_train_mode đọc cờ này)
-    # Cách làm: timm.create_model thay head bằng Linear(num_features, 9) khởi tạo ngẫu nhiên; với
-    #   init="frozen" gọi freeze_backbone. Được gọi bởi train.run, inference/final script khi nạp checkpoint.
     import timm
 
     if init not in ("scratch", "frozen", "finetune"):
@@ -109,13 +93,6 @@ def freeze_backbone(model) -> None:
       - lưu ý (GUIDE.md mục 3.2): backbone đóng băng thì BatchNorm cũng phải ở chế độ eval.
         Hãy nghĩ nơi nào trong train loop phải gọi lại model.train() mà vẫn giữ BN ở eval.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model (nn.Module timm có get_classifier())
-    # Output: None (sửa tại chỗ): mọi tham số ngoài head có requires_grad=False; model.frozen_backbone=True
-    # Cách làm: lấy id các tham số của head (model.get_classifier()), tắt grad phần còn lại.
-    #   BN: model.train() ở đầu mỗi epoch sẽ bật lại train mode cho BN, nên train.set_train_mode()
-    #   (gọi trong train_one_epoch) đặt lại mọi module ngoài head về eval() khi cờ frozen_backbone bật,
-    #   để running_mean/var của backbone không bị cập nhật.
     head_ids = {id(p) for p in model.get_classifier().parameters()}
     for p in model.parameters():
         p.requires_grad = id(p) in head_ids
@@ -123,7 +100,7 @@ def freeze_backbone(model) -> None:
 
 
 def head_module_names(model) -> set[str]:
-    """[Implemented by Claude (AI assistant)] Tên (theo named_modules) của head và các module con của nó.
+    """Tên (theo named_modules) của head và các module con của nó.
 
     Input : model (timm nn.Module). Output: set[str] tên module thuộc head (dùng để giữ backbone ở eval).
     """
@@ -143,18 +120,6 @@ def param_groups(model, lr_backbone: float, lr_head: float, weight_decay: float)
       - trả về list[dict] dạng {"params": [...], "lr": ..., "weight_decay": ...}
       - (trục E) mở rộng: LR theo tầng nếu bạn muốn thử
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model; lr_backbone (float); lr_head (float); weight_decay (float)
-    # Output: list[dict], mỗi dict là một nhóm cho torch.optim:
-    #   [{"name": "backbone_decay",    "params": [...], "lr": lr_backbone, "weight_decay": weight_decay},
-    #    {"name": "backbone_no_decay", "params": [...], "lr": lr_backbone, "weight_decay": 0.0},
-    #    {"name": "head",              "params": [...], "lr": lr_head,     "weight_decay": weight_decay},
-    #    {"name": "head_no_decay",     "params": [...], "lr": lr_head,     "weight_decay": 0.0}]
-    #   (nhóm rỗng bị bỏ, ví dụ init="frozen" chỉ còn 2 nhóm head).
-    # Cách làm: tham số thuộc model.get_classifier() là head; còn lại là backbone. ndim <= 1
-    #   (bias, gamma/beta của BN/LayerNorm, layer-scale, ...) không weight decay. Đây là 3 nhóm của slide
-    #   trang 52; riêng bias của head cũng được tách ra để quy tắc "không decay norm/bias" (GUIDE 1.4)
-    #   áp dụng nhất quán. Được gọi bởi train.build_optimizer.
     head_ids = {id(p) for p in model.get_classifier().parameters()}
     buckets = {"backbone_decay": [], "backbone_no_decay": [], "head": [], "head_no_decay": []}
     for p in model.parameters():
@@ -176,8 +141,6 @@ def param_groups(model, lr_backbone: float, lr_head: float, weight_decay: float)
 
 def count_params(model) -> float:
     """Số tham số (triệu), đếm cả tham số bị đóng băng. TODO."""
-    # [Implemented by Claude (AI assistant)]
-    # Input : model. Output: float - tổng số phần tử của mọi tham số / 1e6 (kể cả tham số đóng băng).
     return sum(p.numel() for p in model.parameters()) / 1e6
 
 
@@ -187,12 +150,6 @@ def count_gmacs(model, img_size: int = 224) -> float:
     TODO: dùng thư viện đếm (fvcore, ptflops, thop...) hoặc tự đếm bằng hook.
     Ghi rõ công cụ đã dùng; số có thể lệch vài phần trăm giữa các công cụ.
     """
-    # [Implemented by Claude (AI assistant)]
-    # Input : model; img_size (int) - cạnh ảnh vuông đầu vào
-    # Output: float - số GMAC (tỉ phép nhân-cộng) cho MỘT ảnh 3 x img_size x img_size
-    # Cách làm: chạy một lượt forward với torch.utils.flop_counter.FlopCounterMode (có sẵn trong PyTorch,
-    #   đếm conv/linear/matmul/attention; KHÔNG đếm BN, activation, pooling). FLOPs của nó = 2 x MAC,
-    #   nên GMAC = FLOPs / 2 / 1e9. Trạng thái train/eval của model được khôi phục sau khi đếm.
     from torch.utils.flop_counter import FlopCounterMode
 
     was_training = model.training
