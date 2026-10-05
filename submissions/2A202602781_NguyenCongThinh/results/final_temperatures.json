@@ -1,0 +1,21 @@
+{
+  "temperatures": {
+    "seed0": 1.178521170632155,
+    "seed1": 1.0695316517972422,
+    "seed2": 1.1033507254754915
+  },
+  "latency_batch1": {
+    "pipeline": "F01 convnext_tiny none K=1 288px",
+    "device": "NVIDIA GeForce RTX 4060",
+    "p50": 11.119099974166602,
+    "p95": 15.036919945850965,
+    "p99": 21.59877701546067
+  },
+  "inference": {
+    "exp_id": "I04_288",
+    "method": "none",
+    "space": "prob",
+    "img_size": 288,
+    "temperature_scaling": true
+  }
+}

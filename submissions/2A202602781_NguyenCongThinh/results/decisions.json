@@ -1,0 +1,30 @@
+{
+  "chosen_backbone": "B02",
+  "reasons": {
+    "backbone": "B02 (convnext_tiny): macro-F1 val 0.9681 (tốt nhất 0.9681), p50 batch 1 = 3.59 ms; nhóm ngang nhau (cách tốt nhất < 0.01): B02, B04 -> chọn cái nhanh nhất",
+    "combo": "ít hơn 2 trục thắng rõ: lấy 2 trục có Δ dương lớn nhất: T03 (aug=trivial (TrivialAugmentWide), Δ=+0.0048), T11 (ema_decay=0.999 (đánh giá bằng trọng số EMA), Δ=+0.0006)",
+    "final": "macro-F1 val (seed 0): T00 0.9681, T03 0.9729, T12 0.9735 -> T12",
+    "inference": "I04_288 có macro-F1 val 0.9787 (I00 0.9735); luật: cao nhất trên val, phải hơn I00 >= 0.002, sau đó temperature scaling khớp trên val"
+  },
+  "profile": "gpu",
+  "combo": {
+    "aug": "trivial",
+    "ema_decay": 0.999
+  },
+  "combo_from": [
+    "T03",
+    "T11"
+  ],
+  "final_recipe": {
+    "aug": "trivial",
+    "ema_decay": 0.999
+  },
+  "final_source": "T12",
+  "inference": {
+    "exp_id": "I04_288",
+    "method": "none",
+    "space": "prob",
+    "img_size": 288,
+    "temperature_scaling": true
+  }
+}
