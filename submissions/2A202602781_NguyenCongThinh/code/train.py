@@ -550,15 +550,17 @@ def run(cfg: Config) -> dict:
     best_f1, best_epoch, start_epoch = -1.0, -1, 1
     last_file = rd / "last.pt"
     if cfg.resume and last_file.exists():
-        ck = torch.load(last_file, map_location=device, weights_only=False)
+        # nạp lên CPU: trạng thái RNG phải là ByteTensor trên CPU; trọng số/optimizer tự được chép sang device
+        # khi load_state_dict (Optimizer.load_state_dict đưa state về đúng device của tham số)
+        ck = torch.load(last_file, map_location="cpu", weights_only=False)
         model.load_state_dict(ck["model"]); optimizer.load_state_dict(ck["optimizer"])
         scheduler.load_state_dict(ck["scheduler"]); scaler.load_state_dict(ck["scaler"])
         if ema is not None:
             ema.module.load_state_dict(ck["ema"]); ema.num_updates = ck["ema_updates"]
         history, lr_all = ck["history"], ck["lr_all"]
         best_f1, best_epoch, start_epoch = ck["best_f1"], ck["best_epoch"], ck["epoch"] + 1
-        torch.set_rng_state(ck["rng_torch"]); np.random.set_state(ck["rng_numpy"]); random.setstate(ck["rng_py"])
-        train_loader.generator.set_state(ck["rng_loader"])
+        torch.set_rng_state(ck["rng_torch"].cpu()); np.random.set_state(ck["rng_numpy"]); random.setstate(ck["rng_py"])
+        train_loader.generator.set_state(ck["rng_loader"].cpu())
         print(f"[run] tiếp tục {cfg.exp_id} seed{cfg.seed} từ epoch {start_epoch}")
 
     # 5. vòng epoch
