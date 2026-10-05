@@ -158,11 +158,11 @@ def main() -> None:
         print(f"[inference] {exp_id} {method}: F1 {m['macro_f1']:.4f} top1 {m['top1']:.4f} "
               f"p50 {latency.get('p50', float('nan')):.2f} ms", flush=True)
 
-    def latpack(mdl, size, k=1, dtype="fp32"):
+    def latpack(mdl, size, k=1, dtype="fp32", name=None):
         b1 = lat(mdl, size, device, k=k, batch=1, dtype=dtype)
         b32 = lat(mdl, size, device, k=k, batch=32, dtype=dtype, iters=50)
         for r, b in ((b1, 1), (b32, 32)):
-            lat_rows.append({"config": f"{cfg.backbone} {size}px K={k}", "gpu": gpu_name, "dtype": dtype,
+            lat_rows.append({"config": f"{name or cfg.backbone} {size}px K={k}", "gpu": gpu_name, "dtype": dtype,
                              "batch": b, "bn_fused": False, "p50": r["p50"], "p95": r["p95"], "p99": r["p99"],
                              "img_per_s": r["images_per_s"], "torch": torch.__version__})
         return {"p50": b1["p50"], "p95": b1["p95"], "p99": b1["p99"], "b32_img_s": b32["images_per_s"]}
@@ -212,7 +212,7 @@ def main() -> None:
         for _, k, c in members:
             assert (train.run_dir(c) / "val_filenames.txt").read_text(encoding="utf-8").split("\n") == list(names)
             probs.append(train.softmax_np(np.load(train.run_dir(c) / "val_logits.npy")))
-            Lm = latpack(train.load_trained_model(c, dev), c.img_size)
+            Lm = latpack(train.load_trained_model(c, dev), c.img_size, name=f"{k} {c.backbone} (ensemble member)")
             for key in ("p50", "p95", "p99"):
                 lat_sum[key] += Lm[key]
             lat_sum["b32_img_s"] = 1.0 / sum(1.0 / v for v in (lat_sum["b32_img_s"], Lm["b32_img_s"]))
